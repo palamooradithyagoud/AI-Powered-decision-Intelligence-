@@ -55,8 +55,8 @@ const DEMO_ROLES: {
   {
     role: "employee",
     title: "Employee / Developer",
-    name: "Devon Chen",
-    email: "employee@company.ai",
+    name: "Emma Watson",
+    email: "shivanallella@gmail.com",
     desc: "My Assigned Deliverables, Task Execution Board & Milestone Status",
     badgeColor: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     borderHover: "hover:border-emerald-500/60 hover:bg-emerald-950/20",
@@ -90,8 +90,19 @@ export default function LoginPage() {
 
   const handleFastLogin = async (demo: typeof DEMO_ROLES[0]) => {
     setIsLoading(true);
-    switchRole(demo.role);
-    router.push(demo.targetPath);
+    try {
+      if (demo.role === "employee") {
+        await login("shivanallella@gmail.com", "emp_01", "employee");
+        router.push("/employee");
+      } else {
+        switchRole(demo.role);
+        router.push(demo.targetPath);
+      }
+    } catch {
+      alert("Demo login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -233,7 +244,8 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => {
                     setSelectedRole("employee");
-                    setEmail("employee@company.ai");
+                    setEmail("shivanallella@gmail.com");
+                    setPassword("emp_01");
                   }}
                   className={cn(
                     "rounded-lg py-2 text-xs font-bold transition-all border",
@@ -250,14 +262,15 @@ export default function LoginPage() {
             {/* Email Field */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                Email Address
+                Email Address or Employee ID
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
+                  placeholder="e.g. emp_01 or email@company.ai"
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-xl border border-slate-800 bg-slate-950/80 pl-9 pr-3 py-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none"
                 />

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
-import { fetchProjects, fetchHealth } from "@/lib/api";
+import { fetchProjects } from "@/lib/api";
 import { Project, UserRole } from "@/types";
 import { 
   Sparkles, 
@@ -30,7 +30,10 @@ import {
   ChevronUp,
   ExternalLink,
   ShieldAlert,
-  HelpCircle
+  HelpCircle,
+  Home,
+  Bell,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,7 +82,7 @@ export default function Sidebar() {
     {
       role: "employee",
       title: "Employee",
-      name: "Devon Chen",
+      name: "Emma Watson",
       path: "/employee",
       icon: Users,
       color: "bg-emerald-600",
@@ -99,45 +102,96 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  // Main navigation items for manager
-  const navItems = [
-    {
-      title: "Manager Dashboard",
-      subtitle: "Portfolio Overview & KPIs",
-      path: "/",
-      icon: LayoutDashboard,
-      active: pathname === "/",
-      badge: "Live",
-      badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    },
-    {
-      title: "Create Project",
-      subtitle: "AI Feasibility Planner",
-      path: "/create",
-      icon: PlusCircle,
-      active: pathname === "/create",
-      badge: "AI Scoper",
-      badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-    },
-    {
-      title: "Sprint Command Center",
-      subtitle: "Milestones & Delivery",
-      path: "/lead",
-      icon: Layers,
-      active: pathname === "/lead",
-      badge: null,
-      badgeColor: "",
-    },
-    {
-      title: "Team Task Hub",
-      subtitle: "Workforce Execution",
-      path: "/employee",
-      icon: CheckCircle2,
-      active: pathname === "/employee",
-      badge: null,
-      badgeColor: "",
-    },
-  ];
+  const searchParams = useSearchParams();
+  const tabParam = searchParams ? searchParams.get("tab") : null;
+
+  // Main navigation items based on role
+  const navItems = role === "employee"
+    ? [
+        {
+          title: "Home",
+          subtitle: "Overview & metrics",
+          path: "/employee?tab=home",
+          icon: Home,
+          active: pathname === "/employee" && (tabParam === "home" || !tabParam),
+          badge: null,
+          badgeColor: "",
+        },
+        {
+          title: "Assigned Project",
+          subtitle: "Specifications & scope",
+          path: "/employee?tab=project",
+          icon: Briefcase,
+          active: pathname === "/employee" && tabParam === "project",
+          badge: null,
+          badgeColor: "",
+        },
+        {
+          title: "Kanban System",
+          subtitle: "Sprint stage progress",
+          path: "/employee?tab=progress",
+          icon: FolderKanban,
+          active: pathname === "/employee" && tabParam === "progress",
+          badge: null,
+          badgeColor: "",
+        },
+        {
+          title: "Notifications",
+          subtitle: "Alerts & updates",
+          path: "/employee?tab=notifications",
+          icon: Bell,
+          active: pathname === "/employee" && tabParam === "notifications",
+          badge: null,
+          badgeColor: "",
+        },
+        {
+          title: "My Profile",
+          subtitle: "Skills & allocation",
+          path: "/employee?tab=profile",
+          icon: User,
+          active: pathname === "/employee" && tabParam === "profile",
+          badge: null,
+          badgeColor: "",
+        },
+      ]
+    : [
+        {
+          title: "Manager Dashboard",
+          subtitle: "Portfolio Overview & KPIs",
+          path: "/",
+          icon: LayoutDashboard,
+          active: pathname === "/",
+          badge: "Live",
+          badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        },
+        {
+          title: "Create Project",
+          subtitle: "AI Feasibility Planner",
+          path: "/create",
+          icon: PlusCircle,
+          active: pathname === "/create",
+          badge: "AI Scoper",
+          badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+        },
+        {
+          title: "Sprint Command Center",
+          subtitle: "Milestones & Delivery",
+          path: "/lead",
+          icon: Layers,
+          active: pathname === "/lead",
+          badge: null,
+          badgeColor: "",
+        },
+        {
+          title: "Team Task Hub",
+          subtitle: "Workforce Execution",
+          path: "/employee",
+          icon: CheckCircle2,
+          active: pathname === "/employee",
+          badge: null,
+          badgeColor: "",
+        },
+      ];
 
   return (
     <>
@@ -278,7 +332,7 @@ export default function Sidebar() {
           </div>
 
           {/* Quick Portfolio Blueprints Section */}
-          {!isCollapsed && (
+          {!isCollapsed && role === "manager" && (
             <div className="space-y-2 pt-2 border-t border-slate-800/80">
               <div className="flex items-center justify-between px-3">
                 <button

@@ -30,15 +30,153 @@ DEMO_USERS: Dict[str, User] = {
         title="Senior Technical Project Lead",
         avatar_color="bg-purple-600"
     ),
-    "employee@company.ai": User(
-        id="usr_employee_01",
-        email="employee@company.ai",
-        name="Devon Chen",
+    "shivanallella@gmail.com": User(
+        id="emp_01",
+        email="shivanallella@gmail.com",
+        name="Emma Watson",
         role="employee",
-        title="Full-Stack & AI Engineer",
+        title="UI/UX Engineer",
         avatar_color="bg-emerald-600"
     )
 }
+
+EMPLOYEES_PROFILES = {
+    1: {
+        "name": "Emma Watson",
+        "designation": "UI/UX Engineer",
+        "skills": ["Figma", "Adobe XD", "Prototyping", "User Research", "Wireframing"],
+        "experience": "4 Years",
+        "workload": 65,
+        "availability": "Available (35% bandwidth)",
+        "prev_projects": ["Kuiper Rebranding Design", "SwiftPay UI Redesign"]
+    },
+    2: {
+        "name": "James Smith",
+        "designation": "Backend Engineer",
+        "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker", "gRPC"],
+        "experience": "6 Years",
+        "workload": 80,
+        "availability": "Available (20% bandwidth)",
+        "prev_projects": ["FinPay Ledger API", "MedAI Audit Service"]
+    },
+    3: {
+        "name": "Sarah Jenkins",
+        "designation": "Frontend Engineer",
+        "skills": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Redux", "HTML5"],
+        "experience": "3 Years",
+        "workload": 70,
+        "availability": "Available (30% bandwidth)",
+        "prev_projects": ["SmartFleet Portal UI", "AdDashboard v2"]
+    },
+    4: {
+        "name": "Alisha Shah",
+        "designation": "AI Engineer",
+        "skills": ["Python", "PyTorch", "TensorFlow", "Hugging Face", "LLMs", "Google Gemini API"],
+        "experience": "5 Years",
+        "workload": 95,
+        "availability": "Busy (5% bandwidth)",
+        "prev_projects": ["Radiology Image Segmenter", "NLP EHR Summary"]
+    },
+    5: {
+        "name": "Marcus Johnson",
+        "designation": "DevOps Engineer",
+        "skills": ["AWS", "Kubernetes", "Docker", "CI/CD", "Terraform", "GitHub Actions"],
+        "experience": "7 Years",
+        "workload": 85,
+        "availability": "Available (15% bandwidth)",
+        "prev_projects": ["CloudMigration SwiftPay", "MedAI Compliance Deploy"]
+    },
+    10: {
+        "name": "Devon Chen",
+        "designation": "Full-Stack & AI Engineer",
+        "skills": ["Next.js", "FastAPI", "React", "TypeScript", "Python", "Google Gemini API"],
+        "experience": "5 Years",
+        "workload": 85,
+        "availability": "Available (15% bandwidth)",
+        "prev_projects": ["MedAI Diagnostic Phase 1", "FinPay Core Ledger"]
+    },
+    11: {
+        "name": "Sarah Jenkins",
+        "designation": "Frontend Developer",
+        "skills": ["React", "TypeScript", "Tailwind CSS", "Next.js", "Redux", "Figma"],
+        "experience": "3 Years",
+        "workload": 70,
+        "availability": "Available (30% bandwidth)",
+        "prev_projects": ["SmartFleet Portal UI", "AdDashboard v2"]
+    },
+    12: {
+        "name": "Michael Chang",
+        "designation": "Backend Developer",
+        "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker", "Node.js"],
+        "experience": "4 Years",
+        "workload": 90,
+        "availability": "Busy (10% bandwidth)",
+        "prev_projects": ["PayGateway Engine", "UserAuth Microservice"]
+    },
+    13: {
+        "name": "Priya Patel",
+        "designation": "QA Engineer",
+        "skills": ["Selenium", "Jest", "Cypress", "Python", "API Testing", "LoadRunner"],
+        "experience": "3 Years",
+        "workload": 60,
+        "availability": "Available (40% bandwidth)",
+        "prev_projects": ["SwiftPay Automation", "FleetIoT Load Tests"]
+    },
+    14: {
+        "name": "Marcus Johnson",
+        "designation": "DevOps Engineer",
+        "skills": ["AWS", "Kubernetes", "Docker", "GitHub Actions", "Terraform", "Linux"],
+        "experience": "6 Years",
+        "workload": 80,
+        "availability": "Available (20% bandwidth)",
+        "prev_projects": ["CloudMigration SwiftPay", "MedAI Compliance Deploy"]
+    },
+    15: {
+        "name": "Alisha Shah",
+        "designation": "AI/ML Engineer",
+        "skills": ["PyTorch", "TensorFlow", "Hugging Face", "Python", "OpenCV", "NLP"],
+        "experience": "4 Years",
+        "workload": 95,
+        "availability": "Busy (5% bandwidth)",
+        "prev_projects": ["Radiology Image Segmenter", "NLP EHR Summary"]
+    }
+}
+
+def get_employee_profile(num: int) -> dict:
+    if num in EMPLOYEES_PROFILES:
+        return EMPLOYEES_PROFILES[num]
+    
+    designations = ["Frontend Developer", "Backend Developer", "QA Engineer", "DevOps Engineer", "AI/ML Engineer", "Data Scientist", "UI/UX Designer"]
+    skills_map = {
+        "Frontend Developer": ["React", "Next.js", "TypeScript", "Tailwind CSS", "CSS3", "HTML5"],
+        "Backend Developer": ["Python", "FastAPI", "PostgreSQL", "MongoDB", "Redis", "Docker"],
+        "QA Engineer": ["Jest", "Cypress", "Selenium", "API Testing", "Postman", "CI/CD"],
+        "DevOps Engineer": ["AWS", "Docker", "Kubernetes", "CI/CD", "Terraform", "GitHub Actions"],
+        "AI/ML Engineer": ["Python", "PyTorch", "TensorFlow", "scikit-learn", "Hugging Face", "LLMs"],
+        "Data Scientist": ["Python", "Pandas", "NumPy", "SQL", "Data Visualization", "R"],
+        "UI/UX Designer": ["Figma", "Adobe XD", "Prototyping", "User Research", "Wireframing"]
+    }
+    
+    designation = designations[num % len(designations)]
+    skills = skills_map[designation]
+    first_names = ["James", "Emma", "John", "Olivia", "Robert", "Sophia", "William", "Isabella", "David", "Mia", "Richard", "Charlotte", "Joseph", "Amelia", "Thomas", "Evelyn"]
+    last_names = ["Smith", "Jones", "Taylor", "Brown", "Wilson", "White", "Miller", "Davis", "Garcia", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Anderson"]
+    
+    name = f"{first_names[num % len(first_names)]} {last_names[(num + 3) % len(last_names)]}"
+    workload = (num * 7) % 50 + 50 # 50% - 99%
+    band = 100 - workload
+    availability = f"Available ({band}% bandwidth)" if band > 10 else "Busy (Fully Allocated)"
+    experience = f"{((num * 3) % 8) + 2} Years"
+    
+    return {
+        "name": name,
+        "designation": designation,
+        "skills": skills,
+        "experience": experience,
+        "workload": workload,
+        "availability": availability,
+        "prev_projects": [f"Legacy Platform v{num % 3 + 1}", f"Internal Tool Setup"]
+    }
 
 class ProjectStorage:
     def __init__(self):
@@ -137,13 +275,24 @@ class ProjectStorage:
                     task_id = str(uuid.uuid4())
                     
                     # Assign roles intelligently
-                    role = "Frontend Developer" if "ui" in p.phase_name.lower() or "frontend" in p.phase_name.lower() else (
-                        "Backend Developer" if "backend" in p.phase_name.lower() or "api" in p.phase_name.lower() else (
-                            "AI/ML Engineer" if "ai" in p.phase_name.lower() or "ml" in p.phase_name.lower() else (
-                                "QA Engineer" if "testing" in p.phase_name.lower() or "qa" in p.phase_name.lower() else "DevOps Engineer"
-                            )
-                        )
-                    )
+                    if "ui" in p.phase_name.lower():
+                        role = "UI/UX Engineer"
+                        assigned_to = "Emma Watson"
+                    elif "frontend" in p.phase_name.lower():
+                        role = "Frontend Engineer"
+                        assigned_to = "Sarah Jenkins"
+                    elif "backend" in p.phase_name.lower() or "api" in p.phase_name.lower():
+                        role = "Backend Engineer"
+                        assigned_to = "James Smith"
+                    elif "ai" in p.phase_name.lower() or "ml" in p.phase_name.lower():
+                        role = "AI Engineer"
+                        assigned_to = "Alisha Shah"
+                    elif "testing" in p.phase_name.lower() or "qa" in p.phase_name.lower():
+                        role = "QA Engineer"
+                        assigned_to = "Priya Patel"
+                    else:
+                        role = "DevOps Engineer"
+                        assigned_to = "Marcus Johnson"
 
                     status = "Completed" if p.end_day < 15 else ("In Progress" if p.start_day <= 25 else "To Do")
 
@@ -155,7 +304,7 @@ class ProjectStorage:
                         title=deliv,
                         description=f"Implement and verify {deliv} as part of Phase: {p.phase_name}",
                         assigned_role=role,
-                        assigned_to="Devon Chen", # Our employee demo user
+                        assigned_to=assigned_to,
                         status=status,
                         priority="High" if "architecture" in p.phase_name.lower() or "core" in p.phase_name.lower() else "Medium",
                         due_day=p.end_day
@@ -241,6 +390,25 @@ class ProjectStorage:
         for p in analysis.timeline_breakdown.phases:
             for deliv in p.key_deliverables:
                 task_id = str(uuid.uuid4())
+                if "ui" in p.phase_name.lower():
+                    role = "UI/UX Engineer"
+                    assigned_to = "Emma Watson"
+                elif "frontend" in p.phase_name.lower():
+                    role = "Frontend Engineer"
+                    assigned_to = "Sarah Jenkins"
+                elif "backend" in p.phase_name.lower() or "api" in p.phase_name.lower():
+                    role = "Backend Engineer"
+                    assigned_to = "James Smith"
+                elif "ai" in p.phase_name.lower() or "ml" in p.phase_name.lower():
+                    role = "AI Engineer"
+                    assigned_to = "Alisha Shah"
+                elif "testing" in p.phase_name.lower() or "qa" in p.phase_name.lower():
+                    role = "QA Engineer"
+                    assigned_to = "Priya Patel"
+                else:
+                    role = "DevOps Engineer"
+                    assigned_to = "Marcus Johnson"
+
                 task = TaskItem(
                     id=task_id,
                     project_id=proj_id,
@@ -248,8 +416,8 @@ class ProjectStorage:
                     phase_name=p.phase_name,
                     title=deliv,
                     description=f"Deliverable for {p.phase_name}: {deliv}",
-                    assigned_role="Frontend Developer" if "frontend" in p.phase_name.lower() or "ui" in p.phase_name.lower() else "Backend Developer",
-                    assigned_to="Devon Chen",
+                    assigned_role=role,
+                    assigned_to=assigned_to,
                     status="To Do",
                     priority="High" if "core" in p.phase_name.lower() or "planning" in p.phase_name.lower() else "Medium",
                     due_day=p.end_day
@@ -367,5 +535,74 @@ class ProjectStorage:
         raw[task_id]["status"] = new_status
         self._write_tasks(raw)
         return TaskItem(**raw[task_id])
+
+    def get_employee_user(self, emp_num: int, email: Optional[str] = None) -> User:
+        profile = get_employee_profile(emp_num)
+        avatar_colors = ["bg-emerald-600", "bg-indigo-600", "bg-teal-600", "bg-cyan-600", "bg-sky-600", "bg-pink-600", "bg-purple-600"]
+        color = avatar_colors[emp_num % len(avatar_colors)]
+        return User(
+            id=f"emp_{emp_num:02d}",
+            email=email if email else f"emp_{emp_num:02d}@company.ai",
+            name=profile["name"],
+            role="employee",
+            title=profile["designation"],
+            avatar_color=color
+        )
+
+    def get_assigned_project_for_employee(self, emp_num: int) -> Optional[Project]:
+        projects = self.list_projects()
+        if not projects:
+            return None
+        # Deterministically assign employee to a project
+        proj_idx = emp_num % len(projects)
+        return projects[proj_idx]
+
+    def get_project_stages(self, project_id: str) -> Dict[str, str]:
+        stages_file = os.path.join(os.path.dirname(__file__), "project_stages.json")
+        if os.path.exists(stages_file):
+            try:
+                with open(stages_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if project_id in data:
+                        return data[project_id]
+            except Exception:
+                pass
+        
+        # Default stages if not exists
+        default_stages = {
+            "Planning": "Completed",
+            "Development": "In Progress",
+            "Testing": "To Do",
+            "Review": "To Do",
+            "Deployment": "To Do"
+        }
+        return default_stages
+
+    def update_project_stage(self, project_id: str, stage_name: str, status: str) -> Dict[str, str]:
+        stages_file = os.path.join(os.path.dirname(__file__), "project_stages.json")
+        data = {}
+        if os.path.exists(stages_file):
+            try:
+                with open(stages_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        
+        if project_id not in data:
+            data[project_id] = {
+                "Planning": "Completed",
+                "Development": "In Progress",
+                "Testing": "To Do",
+                "Review": "To Do",
+                "Deployment": "To Do"
+            }
+        
+        if stage_name in data[project_id]:
+            data[project_id][stage_name] = status
+            
+        with open(stages_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+            
+        return data[project_id]
 
 storage = ProjectStorage()
