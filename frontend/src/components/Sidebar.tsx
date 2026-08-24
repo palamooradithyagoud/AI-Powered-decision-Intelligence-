@@ -126,8 +126,8 @@ export default function Sidebar() {
         {
           title: "Calendar",
           icon: Calendar,
-          path: "/",
-          active: false,
+          path: "/calendar",
+          active: pathname === "/calendar",
         },
         {
           title: "Settings",
@@ -354,30 +354,35 @@ export default function Sidebar() {
         </div>
 
         {/* Bottom Section: Team Orion User Profile Card */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+        <div className="p-3 border-t border-slate-100 bg-slate-50/40">
           
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className={cn(
-                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-gradient-to-r from-slate-900 via-[#131b2e] to-[#0f172a] hover:from-slate-800 hover:to-indigo-950 text-white shadow-sm border border-slate-800/80 group",
+                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 shadow-sm text-slate-900 group",
                 isCollapsed ? "justify-center" : "justify-between"
               )}
               title={isCollapsed ? "Team Orion • 12 members" : undefined}
             >
               <div className="flex items-center gap-3 min-w-0">
-                {/* Glowing sphere avatar */}
-                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#6366f1] via-[#8b5cf6] to-[#ec4899] shadow-md shadow-indigo-500/20 text-white text-xs font-black flex-shrink-0">
-                  <span>TO</span>
+                {/* Logo-matched avatar */}
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 border border-slate-200/80 p-1 flex-shrink-0 group-hover:border-indigo-200 group-hover:bg-indigo-50/40 transition-colors">
+                  <img 
+                    src="/kuiper-mark-dark.png" 
+                    alt="Kuiper" 
+                    className="h-6 w-6 object-contain" 
+                  />
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#f97316] border-2 border-white shadow-xs" />
                 </div>
 
                 {!isCollapsed && (
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-200 transition-colors">
+                    <div className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-[#6366f1] transition-colors">
                       Team Orion
                     </div>
-                    <div className="text-[11px] text-indigo-200/70 truncate">
-                      12 members • {role ? role.replace("_", " ") : "Manager"}
+                    <div className="text-[11px] text-slate-500 truncate">
+                      12 members • <span className="capitalize">{role ? role.replace("_", " ") : "Manager"}</span>
                     </div>
                   </div>
                 )}
@@ -385,7 +390,7 @@ export default function Sidebar() {
 
               {!isCollapsed && (
                 <ChevronRight className={cn(
-                  "h-4 w-4 text-slate-400 group-hover:text-white transition-transform",
+                  "h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-transform",
                   roleSwitcherOpen && "rotate-90"
                 )} />
               )}

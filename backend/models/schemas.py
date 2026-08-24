@@ -181,3 +181,35 @@ class DashboardKPIs(BaseModel):
     feasible_count: int
     feasible_with_changes_count: int
     not_feasible_count: int
+
+# Meeting & Calendar Models
+MeetingType = Literal["Sprint Planning", "1-on-1 Review", "Architecture Sync", "Design Review", "Executive Briefing"]
+
+class MeetingCreate(BaseModel):
+    title: str = Field(..., min_length=2, max_length=150)
+    project_id: Optional[str] = None
+    project_name: Optional[str] = "General Sprint Planning"
+    date: str # Format: YYYY-MM-DD
+    start_time: str # "10:30 AM"
+    end_time: str # "11:30 AM"
+    duration_minutes: int = 60
+    type: MeetingType = "Sprint Planning"
+    attendees: List[str] = ["Alexander Vance", "Elena Rostova"]
+    location_or_link: str = "Google Meet (meet.google.com/kuiper-sync)"
+    agenda: str = ""
+
+class MeetingItem(BaseModel):
+    id: str
+    title: str
+    project_id: Optional[str] = None
+    project_name: str
+    date: str
+    start_time: str
+    end_time: str
+    duration_minutes: int
+    type: str
+    attendees: List[str]
+    location_or_link: str
+    agenda: str
+    created_at: str
+

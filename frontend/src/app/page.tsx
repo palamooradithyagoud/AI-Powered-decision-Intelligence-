@@ -5,9 +5,10 @@ import Link from "next/link";
 import { 
   fetchKPIs, 
   fetchProjects, 
-  deleteProject 
+  deleteProject,
+  fetchMeetings 
 } from "@/lib/api";
-import { Project, DashboardKPIs } from "@/types";
+import { Project, DashboardKPIs, MeetingItem } from "@/types";
 import Navbar from "@/components/Navbar";
 import FeasibilityBadge from "@/components/FeasibilityBadge";
 import { 
@@ -31,13 +32,15 @@ import {
   FileText,
   Bell,
   MessageSquare,
-  Plus
+  Plus,
+  Video
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
 export default function ManagerDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [feasibilityFilter, setFeasibilityFilter] = useState<string>("ALL");
@@ -46,16 +49,18 @@ export default function ManagerDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [kpiData, projectsData] = await Promise.all([
+      const [kpiData, projectsData, meetingsData] = await Promise.all([
         fetchKPIs().catch(() => null),
         fetchProjects({
           search: searchTerm,
           feasibility: feasibilityFilter,
           status: statusFilter,
         }).catch(() => []),
+        fetchMeetings().catch(() => []),
       ]);
       setKpis(kpiData);
       setProjects(projectsData);
+      setMeetings(meetingsData);
     } catch (err) {
       console.error("Error loading dashboard data:", err);
     } finally {
@@ -85,13 +90,14 @@ export default function ManagerDashboard() {
     }
   };
 
-  // Get dynamic greeting based on current time
-  const getGreeting = () => {
+  const [greeting, setGreeting] = useState("Good day,");
+
+  useEffect(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning,";
-    if (hour < 17) return "Good afternoon,";
-    return "Good evening,";
-  };
+    if (hour < 12) setGreeting("Good morning,");
+    else if (hour < 17) setGreeting("Good afternoon,");
+    else setGreeting("Good evening,");
+  }, []);
 
   const avgFeasibility = projects.length > 0
     ? Math.round(projects.reduce((acc, p) => acc + (p.analysis?.feasibility?.feasibility_score || 75), 0) / projects.length)
@@ -107,7 +113,7 @@ export default function ManagerDashboard() {
         <div className="space-y-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              {getGreeting()}
+              {greeting}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-500">
               Here's what's happening with your work today.
@@ -312,11 +318,11 @@ export default function ManagerDashboard() {
               </Link>
 
               <Link
-                href="/lead"
+                href="/calendar?schedule=true"
                 className="w-full flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
               >
-                <CalendarIcon className="h-3.5 w-3.5 text-slate-500" />
-                <span>Schedule Meeting</span>
+                <CalendarIcon className="h-3.5 w-3.5 text-[#6366f1]" />
+                <span className="font-semibold text-slate-900">Schedule Meeting</span>
               </Link>
 
               <Link
@@ -337,46 +343,42 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* Notifications Stream Widget matching Reference */}
+          {/* Upcoming Briefings & Syncs Widget */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-2.5 shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-900">Notifications</span>
-              <span className="text-[10px] text-slate-500 font-semibold cursor-pointer hover:text-slate-800">View all →</span>
+              <span className="text-xs font-bold text-slate-900">Upcoming Syncs</span>
+              <Link href="/calendar" className="text-[10px] text-[#6366f1] font-bold cursor-pointer hover:underline">
+                Calendar →
+              </Link>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-start gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition-colors">
-                <div className="h-6 w-6 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Bell className="h-3 w-3" />
+              {meetings.slice(0, 3).map((m) => (
+                <div key={m.id} className="flex items-start gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition-colors">
+                  <div className="h-6 w-6 rounded-full bg-indigo-50 text-[#6366f1] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CalendarIcon className="h-3 w-3" />
+                  </div>
+                  <div className="text-xs min-w-0 flex-1">
+                    <div className="font-semibold text-slate-900 text-[11px] truncate">{m.title}</div>
+                    <div className="text-[10px] text-slate-500 truncate">{m.date} • {m.start_time}</div>
+                  </div>
+                  <a
+                    href={m.location_or_link.includes("http") ? m.location_or_link : `https://${m.location_or_link}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-bold text-[#6366f1] hover:underline flex-shrink-0 flex items-center gap-0.5 pt-0.5"
+                  >
+                    <Video className="h-2.5 w-2.5" />
+                    <span>Join</span>
+                  </a>
                 </div>
-                <div className="text-xs min-w-0 flex-1">
-                  <div className="font-semibold text-slate-900 text-[11px] truncate">Deadline approaching</div>
-                  <div className="text-[10px] text-slate-500 truncate">Re-branding meeting in 1 hour.</div>
-                </div>
-                <span className="text-[9px] text-slate-400 flex-shrink-0">5m ago</span>
-              </div>
+              ))}
 
-              <div className="flex items-start gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition-colors">
-                <div className="h-6 w-6 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <CheckCircle2 className="h-3 w-3" />
+              {meetings.length === 0 && (
+                <div className="text-center py-4 text-xs text-slate-400 italic">
+                  No upcoming syncs scheduled
                 </div>
-                <div className="text-xs min-w-0 flex-1">
-                  <div className="font-semibold text-slate-900 text-[11px] truncate">Task update</div>
-                  <div className="text-[10px] text-slate-500 truncate">2 completed, 3 pending.</div>
-                </div>
-                <span className="text-[9px] text-slate-400 flex-shrink-0">1h ago</span>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition-colors">
-                <div className="h-6 w-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <MessageSquare className="h-3 w-3" />
-                </div>
-                <div className="text-xs min-w-0 flex-1">
-                  <div className="font-semibold text-slate-900 text-[11px] truncate">New message</div>
-                  <div className="text-[10px] text-slate-500 truncate">Sarah: "Design files ready."</div>
-                </div>
-                <span className="text-[9px] text-slate-400 flex-shrink-0">3h ago</span>
-              </div>
+              )}
             </div>
           </div>
 

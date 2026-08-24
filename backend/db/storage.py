@@ -5,12 +5,13 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from models.schemas import (
     Project, ProjectCreate, DashboardKPIs, User, UserRole,
-    TaskItem, TaskStatus
+    TaskItem, TaskStatus, MeetingItem, MeetingCreate
 )
 from services.ai_analyzer import analyzer_instance
 
 STORAGE_FILE = os.path.join(os.path.dirname(__file__), "projects_db.json")
 TASKS_FILE = os.path.join(os.path.dirname(__file__), "tasks_db.json")
+MEETINGS_FILE = os.path.join(os.path.dirname(__file__), "meetings_db.json")
 
 # Predefined Demo Users for the 3 Roles
 DEMO_USERS: Dict[str, User] = {
@@ -188,6 +189,8 @@ class ProjectStorage:
             self._seed_default_projects()
         if not os.path.exists(TASKS_FILE) or os.path.getsize(TASKS_FILE) == 0:
             self._seed_default_tasks()
+        if not os.path.exists(MEETINGS_FILE) or os.path.getsize(MEETINGS_FILE) == 0:
+            self._seed_default_meetings()
 
     def _seed_default_projects(self):
         """Seed realistic projects so the manager dashboard looks rich and functional out-of-the-box."""
@@ -605,4 +608,114 @@ class ProjectStorage:
             
         return data[project_id]
 
+    # ================= MEETING STORAGE & CALENDAR =================
+    def _seed_default_meetings(self):
+        default_meetings = {
+            "meet_01": {
+                "id": "meet_01",
+                "title": "MedAI Architecture & Safety Review",
+                "project_id": "proj_medai",
+                "project_name": "MedAI Clinical Diagnostic Assistant",
+                "date": "2026-08-24",
+                "start_time": "10:30 AM",
+                "end_time": "11:30 AM",
+                "duration_minutes": 60,
+                "type": "Architecture Sync",
+                "attendees": ["Alexander Vance", "Elena Rostova", "Devon Chen"],
+                "location_or_link": "Google Meet (meet.google.com/kuiper-medai)",
+                "agenda": "Review DICOM segmentation pipeline safety guardrails and FHIR interoperability specs.",
+                "created_at": datetime.now().isoformat()
+            },
+            "meet_02": {
+                "id": "meet_02",
+                "title": "Sprint Planning & Deliverables Review",
+                "project_id": "proj_swiftpay",
+                "project_name": "SwiftPay Global Micro-Merchant POS",
+                "date": "2026-08-25",
+                "start_time": "02:00 PM",
+                "end_time": "03:00 PM",
+                "duration_minutes": 60,
+                "type": "Sprint Planning",
+                "attendees": ["Alexander Vance", "Devon Chen"],
+                "location_or_link": "Room 4A • Kuiper HQ & Zoom",
+                "agenda": "Assign upcoming sprint milestone deliverables and test fraud anomaly engine.",
+                "created_at": datetime.now().isoformat()
+            },
+            "meet_03": {
+                "id": "meet_03",
+                "title": "Executive AI Feasibility Briefing",
+                "project_id": "proj_smartfleet",
+                "project_name": "SmartFleet Autonomous Logistics IoT Hub",
+                "date": "2026-08-28",
+                "start_time": "11:00 AM",
+                "end_time": "12:00 PM",
+                "duration_minutes": 60,
+                "type": "Executive Briefing",
+                "attendees": ["Alexander Vance", "Elena Rostova"],
+                "location_or_link": "Boardroom Alpha • Hybrid Link",
+                "agenda": "Present 5-dimension AI feasibility radar score and timeline buffer analysis to leadership.",
+                "created_at": datetime.now().isoformat()
+            }
+        }
+        self._write_meetings(default_meetings)
+
+    def _read_meetings(self) -> Dict[str, dict]:
+        if not os.path.exists(MEETINGS_FILE):
+            return {}
+        try:
+            with open(MEETINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def _write_meetings(self, data: Dict[str, dict]):
+        with open(MEETINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    def list_meetings(self, date: Optional[str] = None, project_id: Optional[str] = None) -> List[MeetingItem]:
+        raw = self._read_meetings()
+        meets = [MeetingItem(**m) for m in raw.values()]
+        if date:
+            meets = [m for m in meets if m.date == date]
+        if project_id:
+            meets = [m for m in meets if m.project_id == project_id]
+        
+        # Sort by date and start time
+        meets.sort(key=lambda m: (m.date, m.start_time))
+        return meets
+
+    def create_meeting(self, payload: MeetingCreate) -> MeetingItem:
+        raw = self._read_meetings()
+        meet_id = f"meet_{uuid.uuid4().hex[:8]}"
+        now_iso = datetime.now().isoformat()
+
+        meeting_data = {
+            "id": meet_id,
+            "title": payload.title,
+            "project_id": payload.project_id,
+            "project_name": payload.project_name or "General Sprint Planning",
+            "date": payload.date,
+            "start_time": payload.start_time,
+            "end_time": payload.end_time,
+            "duration_minutes": payload.duration_minutes,
+            "type": payload.type,
+            "attendees": payload.attendees if payload.attendees else ["Alexander Vance"],
+            "location_or_link": payload.location_or_link or "Google Meet (meet.google.com/kuiper-sync)",
+            "agenda": payload.agenda or "",
+            "created_at": now_iso
+        }
+
+        raw[meet_id] = meeting_data
+        self._write_meetings(raw)
+        return MeetingItem(**meeting_data)
+
+    def delete_meeting(self, meeting_id: str) -> bool:
+        raw = self._read_meetings()
+        if meeting_id in raw:
+            del raw[meeting_id]
+            self._write_meetings(raw)
+            return True
+        return False
+
 storage = ProjectStorage()
+

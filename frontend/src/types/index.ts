@@ -190,3 +190,36 @@ export interface SimulationResponse {
   timeline_breakdown: TimelineBreakdown;
   ai_recommendation: AIRecommendation;
 }
+
+export type MeetingType = "Sprint Planning" | "1-on-1 Review" | "Architecture Sync" | "Design Review" | "Executive Briefing";
+
+export interface MeetingItem {
+  id: string;
+  title: string;
+  project_id?: string;
+  project_name: string;
+  date: string; // YYYY-MM-DD
+  start_time: string; // e.g. "10:30 AM"
+  end_time: string; // e.g. "11:30 AM"
+  duration_minutes: number;
+  type: MeetingType;
+  attendees: string[];
+  location_or_link: string;
+  agenda: string;
+  created_at: string;
+}
+
+export interface MeetingCreateInput {
+  title: string;
+  project_id?: string;
+  project_name?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes?: number;
+  type: MeetingType;
+  attendees: string[];
+  location_or_link?: string;
+  agenda?: string;
+}
+

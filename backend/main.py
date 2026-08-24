@@ -9,7 +9,7 @@ load_dotenv()
 from models.schemas import (
     Project, ProjectCreate, DashboardKPIs, SimulationRequest,
     SimulationResponse, User, LoginRequest, LoginResponse,
-    TaskItem, TaskStatusUpdate
+    TaskItem, TaskStatusUpdate, MeetingItem, MeetingCreate
 )
 from db.storage import storage
 from services.ai_analyzer import analyzer_instance
@@ -237,6 +237,28 @@ def simulate_feasibility(payload: SimulationRequest):
         timeline_breakdown=sim_res["timeline_breakdown"],
         ai_recommendation=sim_res["ai_recommendation"]
     )
+
+# ================= MEETINGS & CALENDAR ENDPOINTS =================
+@app.get("/api/meetings", response_model=List[MeetingItem])
+def list_meetings(
+    date: Optional[str] = Query(None, description="Filter meetings by date YYYY-MM-DD"),
+    project_id: Optional[str] = Query(None, description="Filter by project")
+):
+    """Retrieve scheduled team meetings and calendar events."""
+    return storage.list_meetings(date=date, project_id=project_id)
+
+@app.post("/api/meetings", response_model=MeetingItem)
+def create_meeting(payload: MeetingCreate):
+    """Schedule and create a new project meeting on the calendar."""
+    return storage.create_meeting(payload)
+
+@app.delete("/api/meetings/{meeting_id}")
+def delete_meeting(meeting_id: str):
+    """Cancel / remove a meeting from the calendar."""
+    success = storage.delete_meeting(meeting_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return {"status": "success", "message": f"Meeting {meeting_id} deleted"}
 
 if __name__ == "__main__":
     import uvicorn

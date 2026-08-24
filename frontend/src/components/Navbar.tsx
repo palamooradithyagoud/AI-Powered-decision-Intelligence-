@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
-import { UserRole } from "@/types";
+import { UserRole, MeetingItem } from "@/types";
+import { fetchMeetings } from "@/lib/api";
 import { 
   Calendar as CalendarIcon,
   Bell,
@@ -19,7 +20,10 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  MessageSquare
+  MessageSquare,
+  CalendarDays,
+  ExternalLink,
+  Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +36,20 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [selectedDay, setSelectedDay] = useState<number>(24);
+
+  useEffect(() => {
+    async function loadNavMeetings() {
+      try {
+        const data = await fetchMeetings();
+        setMeetings(data);
+      } catch (err) {
+        console.error("Failed to load nav meetings:", err);
+      }
+    }
+    loadNavMeetings();
+  }, [isCalendarOpen, pathname]);
 
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
@@ -119,17 +137,17 @@ export default function Navbar() {
 
             {/* Calendar Popover Dropdown */}
             {isCalendarOpen && (
-              <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800">
+              <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <span className="text-xs font-bold text-slate-900">August 2026</span>
-                  <div className="flex items-center gap-1">
-                    <button className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100">
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </button>
-                    <button className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100">
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  <Link
+                    href="/calendar"
+                    onClick={() => setIsCalendarOpen(false)}
+                    className="flex items-center gap-1 text-[11px] text-[#6366f1] hover:underline font-bold"
+                  >
+                    <span>Full Calendar</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
                 </div>
 
                 {/* Days Grid */}
@@ -139,38 +157,84 @@ export default function Navbar() {
                   ))}
                   {[...Array(31)].map((_, i) => {
                     const day = i + 1;
+                    const dateStr = `2026-08-${String(day).padStart(2, "0")}`;
+                    const hasEvent = meetings.some((m) => m.date === dateStr);
+                    const isSelected = selectedDay === day;
                     const isToday = day === 24;
-                    const hasEvent = day === 23 || day === 24 || day === 28;
+
                     return (
                       <button
                         key={day}
+                        onClick={() => setSelectedDay(day)}
                         className={cn(
-                          "h-7 w-7 rounded-lg flex items-center justify-center transition-colors relative mx-auto text-xs font-medium",
-                          isToday 
-                            ? "bg-[#6366f1] text-white font-bold shadow-md shadow-indigo-500/20" 
+                          "h-7 w-7 rounded-lg flex items-center justify-center transition-colors relative mx-auto text-xs font-medium cursor-pointer",
+                          isSelected
+                            ? "bg-[#6366f1] text-white font-bold shadow-md shadow-indigo-500/20"
+                            : isToday
+                            ? "border border-[#6366f1] text-[#6366f1] font-bold"
                             : "text-slate-700 hover:bg-slate-100",
-                          hasEvent && !isToday && "text-[#4f46e5] font-bold"
+                          hasEvent && !isSelected && "text-[#4f46e5] font-bold"
                         )}
                       >
                         {day}
-                        {hasEvent && !isToday && (
-                          <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#6366f1]" />
+                        {hasEvent && !isSelected && (
+                          <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-[#6366f1]" />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Event indicator */}
-                <div className="rounded-xl border border-indigo-100 bg-[#ede9fe]/40 p-2.5 space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#4f46e5] flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" />
-                      Re-branding Discussion
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">1:30 PM</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 pl-3">Design • Meeting</p>
+                {/* Selected Day Event indicator list */}
+                <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                  {(() => {
+                    const selectedDateStr = `2026-08-${String(selectedDay).padStart(2, "0")}`;
+                    const dayMeets = meetings.filter((m) => m.date === selectedDateStr);
+
+                    if (dayMeets.length === 0) {
+                      return (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-2.5 text-center text-[11px] text-slate-400">
+                          No events for Aug {selectedDay}, 2026
+                        </div>
+                      );
+                    }
+
+                    return dayMeets.slice(0, 2).map((m) => (
+                      <div
+                        key={m.id}
+                        className="rounded-xl border border-indigo-100 bg-[#ede9fe]/40 p-2.5 space-y-1"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-[#4f46e5] flex items-center gap-1.5 truncate">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] flex-shrink-0" />
+                            <span className="truncate">{m.title}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">{m.start_time}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 pl-3 truncate">{m.project_name}</p>
+                      </div>
+                    ));
+                  })()}
+                </div>
+
+                {/* Popover Action Links */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <Link
+                    href="/calendar?schedule=true"
+                    onClick={() => setIsCalendarOpen(false)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#6366f1] hover:underline"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>+ Schedule Sync</span>
+                  </Link>
+
+                  <Link
+                    href="/calendar"
+                    onClick={() => setIsCalendarOpen(false)}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800"
+                  >
+                    View All →
+                  </Link>
                 </div>
               </div>
             )}
