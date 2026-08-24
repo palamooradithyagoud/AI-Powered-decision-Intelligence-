@@ -23,37 +23,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 1,
-    title: "Project Milestone Shifted",
-    description: "Elena Rostova (Project Lead) adjusted the testing timeline. The UAT review has been scheduled for Day 40.",
-    time: "2 hours ago",
-    type: "info"
-  },
-  {
-    id: 2,
-    title: "AI Analysis Complete",
-    description: "Gemini Reasoning engine evaluated the project feasibility. Current status: Feasible.",
-    time: "1 day ago",
-    type: "success"
-  },
-  {
-    id: 3,
-    title: "Task Assigned",
-    description: "You have been assigned to lead the Development phase execution.",
-    time: "3 days ago",
-    type: "warning"
-  },
-  {
-    id: 4,
-    title: "Welcome to Kuiper",
-    description: "Your employee dashboard workspace is active. Explore your project dashboard and Kanban board.",
-    time: "5 days ago",
-    type: "system"
-  }
-];
-
 const STAGE_DESCRIPTIONS: Record<string, string> = {
   "Planning": "Requirements gathering, tech stack selection, resource planning, and architecture design docs.",
   "Development": "Coding backend services, developing user interfaces, API integrations, and database migrations.",
@@ -394,19 +363,12 @@ function EmployeeDashboardContent() {
                 {/* Notifications Preview */}
                 <div className="bg-slate-900/50 rounded-xl border border-slate-800/80 p-5 backdrop-blur-md space-y-4">
                   <div className="border-b border-slate-850 pb-2 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white">Recent Alerts</h3>
+                    <h3 className="text-sm font-bold text-white">System Activity</h3>
                     <Bell className="h-4 w-4 text-slate-500" />
                   </div>
-                  <div className="space-y-3">
-                    {MOCK_NOTIFICATIONS.slice(0, 2).map(n => (
-                      <div key={n.id} className="flex gap-2.5 items-start text-xs">
-                        <div className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-slate-200 truncate">{n.title}</h4>
-                          <p className="text-slate-400 text-[11px] truncate">{n.description}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="py-2 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    <span>All project channels are up to date.</span>
                   </div>
                 </div>
               </div>
@@ -723,36 +685,17 @@ function EmployeeDashboardContent() {
                   <h1 className="text-xl md:text-2xl font-black text-white">Notifications & Alerts</h1>
                   <p className="text-xs text-slate-400 mt-1">Review historical notifications, task assignments, and direct system updates.</p>
                 </div>
-                <span className="rounded-full bg-orange-500/10 px-2.5 py-0.5 text-xs font-bold text-orange-400 border border-orange-500/20">
-                  {MOCK_NOTIFICATIONS.length} New Alerts
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-400 border border-emerald-500/20">
+                  0 New Alerts
                 </span>
               </div>
 
-              <div className="divide-y divide-slate-800/60">
-                {MOCK_NOTIFICATIONS.map(n => (
-                  <div key={n.id} className="py-4 first:pt-0 last:pb-0 flex gap-3.5 items-start">
-                    <div className={cn(
-                      "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border",
-                      n.type === "success" 
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
-                        : n.type === "warning"
-                        ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
-                        : "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                    )}>
-                      {n.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : 
-                       n.type === "warning" ? <AlertCircle className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center justify-between gap-1.5">
-                        <h4 className="font-extrabold text-slate-200 text-xs sm:text-sm">{n.title}</h4>
-                        <span className="text-[10px] text-slate-500 font-semibold">{n.time}</span>
-                      </div>
-                      <p className="text-xs text-slate-455 leading-relaxed">
-                        {n.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 border border-dashed border-slate-800 rounded-xl">
+                <CheckCircle2 className="h-10 w-10 text-emerald-400" />
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">All Caught Up</h3>
+                  <p className="text-xs text-slate-400 max-w-sm">You have no pending alerts or milestone changes at this moment.</p>
+                </div>
               </div>
             </div>
           )}
