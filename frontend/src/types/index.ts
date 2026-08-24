@@ -9,6 +9,16 @@ export interface User {
   avatar_color: string;
 }
 
+export interface EmployeeProfile {
+  name: string;
+  designation: string;
+  skills: string[];
+  experience: string;
+  workload: number;
+  availability: string;
+  prev_projects: string[];
+}
+
 export interface LoginResponse {
   user: User;
   token: string;

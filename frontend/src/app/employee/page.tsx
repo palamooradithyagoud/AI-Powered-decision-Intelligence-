@@ -381,8 +381,8 @@ function EmployeeDashboardContent() {
                     <div className="col-span-2">
                       <span className="text-slate-500 font-semibold uppercase text-[9px] block">Top Competencies</span>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {profile.skills.slice(0, 4).map(skill => (
-                          <span key={skill} className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300 border border-slate-850">
+                        {profile.skills.slice(0, 4).map((skill: string) => (
+                          <span key={skill} className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300 border border-slate-855">
                             {skill}
                           </span>
                         ))}
@@ -466,7 +466,7 @@ function EmployeeDashboardContent() {
                 <div className="rounded-xl border border-slate-800/80 p-4 space-y-3 bg-slate-955/20">
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Required Stack & Competencies</h3>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {profile.skills.map(skill => (
+                    {profile.skills.map((skill: string) => (
                       <span key={skill} className="rounded-lg bg-slate-800/60 px-3 py-1.5 text-xs font-semibold text-slate-200 border border-slate-800">
                         {skill}
                       </span>
@@ -689,7 +689,7 @@ function EmployeeDashboardContent() {
                   <div className="rounded-xl border border-slate-800/80 p-4 space-y-3 bg-slate-955/20">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Core Stack & Skillset Tags</h3>
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {profile.skills.map(skill => (
+                      {profile.skills.map((skill: string) => (
                         <span key={skill} className="rounded-lg bg-slate-800/60 px-3 py-1 text-xs font-bold text-slate-200 border border-slate-800">
                           {skill}
                         </span>
@@ -701,7 +701,7 @@ function EmployeeDashboardContent() {
                   <div className="rounded-xl border border-slate-800/80 p-4 space-y-3 bg-slate-955/20">
                     <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Previous Project Contributions</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {profile.prev_projects.map(projName => (
+                      {profile.prev_projects.map((projName: string) => (
                         <div key={projName} className="flex items-center gap-2 border border-slate-800 rounded-xl p-3 bg-slate-955/40">
                           <BookOpen className="h-4 w-4 text-blue-500 shrink-0" />
                           <span className="text-xs font-bold text-slate-300 truncate">{projName}</span>
