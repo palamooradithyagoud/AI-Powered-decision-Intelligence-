@@ -77,7 +77,7 @@ export default function Navbar() {
     if (pathname === "/lead") return { title: "Sprint Command Center", sub: "Execution Tracking" };
     if (pathname === "/employee") return { title: "My Task Hub", sub: "Sprint Deliverables" };
     if (pathname.startsWith("/projects/")) return { title: "Project Blueprint", sub: "Full AI Architecture & Analysis" };
-    return { title: "Control Hub", sub: "PlanPulse.AI" };
+    return { title: "Control Hub", sub: "Kuiper" };
   };
 
   const pageInfo = getPageTitle();
@@ -100,7 +100,7 @@ export default function Navbar() {
           {/* Breadcrumb Info */}
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span className="text-slate-500">PlanPulse.AI</span>
+              <span className="text-slate-400 font-bold tracking-wider">KUIPER</span>
               <ChevronRight className="h-3 w-3 text-slate-600" />
               <span className="text-blue-400 font-semibold capitalize">
                 {role ? role.replace("_", " ") : "Manager"} Hub

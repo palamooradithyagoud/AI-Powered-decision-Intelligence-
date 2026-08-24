@@ -105,15 +105,19 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-xl relative z-10 space-y-6">
         
         {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl shadow-blue-500/25">
-            <Sparkles className="h-7 w-7 text-white" />
+        <div className="text-center space-y-3">
+          <div className="mx-auto flex items-center justify-center p-2">
+            <img 
+              src="/kuiper-logo.png" 
+              alt="Kuiper" 
+              className="h-16 sm:h-20 w-auto object-contain mx-auto filter drop-shadow-[0_0_20px_rgba(249,115,22,0.2)]" 
+            />
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-white">
-            PlanPulse<span className="text-blue-500 font-extrabold">.AI</span>
+          <h2 className="text-2xl sm:text-3xl font-black tracking-wider text-white">
+            KUIPER<span className="text-orange-500 font-black">.</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400">
-            Enterprise AI Project Planning, Feasibility Evaluation & Sprint Platform
+          <p className="text-xs sm:text-sm text-slate-400 font-medium">
+            Enterprise AI Decision Intelligence, Feasibility Evaluation & Sprint Platform
           </p>
         </div>
 

@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PlanPulse.AI — Enterprise AI Project Planning & Feasibility Platform",
+  title: "Kuiper — Enterprise AI Decision Intelligence & Project Feasibility Platform",
   description: "AI-Powered Project Planning, Feasibility Analysis, Resource Estimation, and Phased Sprint Execution for Managers, Project Leads, and Employees.",
+  icons: {
+    icon: "/favicon.ico",
+  }
 };
 
 export default function RootLayout({

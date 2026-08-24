@@ -158,32 +158,32 @@ export default function Sidebar() {
         )}
       >
         {/* Top Header: Brand Logo & Collapse Toggle */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80 bg-slate-900/40">
+        <div className="h-16 flex items-center justify-between px-3.5 border-b border-slate-800/80 bg-slate-900/40">
           <Link
             href="/"
             onClick={closeMobile}
-            className="flex items-center gap-3 overflow-hidden group"
+            className="flex items-center gap-2.5 overflow-hidden group"
           >
-            <div className="relative flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="h-5 w-5 text-white" />
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+            <div className="relative flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 shadow-md group-hover:scale-105 transition-transform">
+              <img src="/kuiper-mark.png" alt="Kuiper" className="h-full w-full object-contain" />
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
               </span>
             </div>
 
             {!isCollapsed && (
               <div className="flex flex-col min-w-0 transition-opacity duration-200">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-tight text-white">
-                    PlanPulse<span className="text-blue-500">.AI</span>
+                  <span className="font-extrabold text-base tracking-wider text-white">
+                    KUIPER<span className="text-orange-500 font-black">.</span>
                   </span>
                   <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                     MANAGER
                   </span>
                 </div>
                 <span className="text-[10px] text-slate-400 truncate font-medium">
-                  AI Planning & Governance
+                  AI Decision Intelligence
                 </span>
               </div>
             )}

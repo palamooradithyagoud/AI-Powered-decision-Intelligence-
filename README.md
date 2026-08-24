@@ -1,6 +1,6 @@
-# PlanPulse.AI — Enterprise AI Decision Intelligence & Project Feasibility Platform
+# Kuiper — Enterprise AI Decision Intelligence & Project Feasibility Platform
 
-PlanPulse.AI is an end-to-end AI-powered decision intelligence and project planning system. It empowers Engineering Managers, Technical Project Leads, and Developers to evaluate project feasibility, estimate manpower & specialist roles, formulate phased Gantt timelines, select technology stacks, manage risks, and simulate real-time resource adjustments.
+**Kuiper** is an end-to-end AI-powered decision intelligence and project planning system. It empowers Engineering Managers, Technical Project Leads, and Developers to evaluate project feasibility, estimate manpower & specialist roles, formulate phased Gantt timelines, select technology stacks, manage risks, and simulate real-time resource adjustments.
 
 ---
 
