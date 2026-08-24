@@ -40,9 +40,16 @@ export default function Sidebar() {
   const { user, role, switchRole, logout } = useAuth();
   const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } = useSidebar();
   
+  const [mounted, setMounted] = useState(false);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeRole = mounted ? role : "manager";
 
   useEffect(() => {
     async function loadProjects() {
@@ -59,7 +66,7 @@ export default function Sidebar() {
   const searchParams = useSearchParams();
   const tabParam = searchParams ? searchParams.get("tab") : null;
 
-  const navItems = role === "employee"
+  const navItems = activeRole === "employee"
     ? [
         {
           title: "Home",
@@ -275,7 +282,7 @@ export default function Sidebar() {
           </div>
 
           {/* Quick Portfolio Blueprints Section */}
-          {!isCollapsed && role === "manager" && (
+          {!isCollapsed && activeRole === "manager" && (
             <div className="space-y-2 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between px-3">
                 <button
@@ -382,7 +389,7 @@ export default function Sidebar() {
                       Team Orion
                     </div>
                     <div className="text-[11px] text-slate-500 truncate">
-                      12 members • <span className="capitalize">{role ? role.replace("_", " ") : "Manager"}</span>
+                      12 members • <span className="capitalize">{activeRole.replace("_", " ")}</span>
                     </div>
                   </div>
                 )}
@@ -417,7 +424,7 @@ export default function Sidebar() {
                 <div className="space-y-1">
                   {roleOptions.map((opt) => {
                     const Icon = opt.icon;
-                    const isCurrent = role === opt.role;
+                    const isCurrent = activeRole === opt.role;
 
                     return (
                       <button
