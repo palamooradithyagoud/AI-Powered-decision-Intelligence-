@@ -25,6 +25,8 @@ import {
   CheckCircle2, 
   Clock, 
   BarChart3, 
+  Calendar,
+  Settings,
   X,
   ChevronDown,
   ChevronUp,
@@ -99,43 +101,49 @@ export default function Sidebar() {
     router.push("/login");
   };
 
-  // Main navigation items for manager
+  // Main navigation items matching reference
   const navItems = [
     {
-      title: "Manager Dashboard",
-      subtitle: "Portfolio Overview & KPIs",
+      title: "Dashboard",
       path: "/",
       icon: LayoutDashboard,
       active: pathname === "/",
-      badge: "Live",
-      badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     },
     {
-      title: "Create Project",
-      subtitle: "AI Feasibility Planner",
-      path: "/create",
-      icon: PlusCircle,
-      active: pathname === "/create",
-      badge: "AI Scoper",
-      badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-    },
-    {
-      title: "Sprint Command Center",
-      subtitle: "Milestones & Delivery",
-      path: "/lead",
-      icon: Layers,
-      active: pathname === "/lead",
-      badge: null,
-      badgeColor: "",
-    },
-    {
-      title: "Team Task Hub",
-      subtitle: "Workforce Execution",
+      title: "Tasks",
       path: "/employee",
       icon: CheckCircle2,
       active: pathname === "/employee",
-      badge: null,
-      badgeColor: "",
+    },
+    {
+      title: "Projects",
+      path: "/",
+      icon: FolderKanban,
+      active: pathname === "/" && false,
+    },
+    {
+      title: "Team",
+      path: "/lead",
+      icon: Users,
+      active: pathname === "/lead",
+    },
+    {
+      title: "Analytics",
+      path: "/",
+      icon: BarChart3,
+      active: false,
+    },
+    {
+      title: "Calendar",
+      path: "/lead",
+      icon: Calendar,
+      active: false,
+    },
+    {
+      title: "Settings",
+      path: "/login",
+      icon: Settings,
+      active: pathname === "/login",
     },
   ];
 
@@ -152,41 +160,28 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#080c16]/95 backdrop-blur-xl border-r border-slate-800/80 transition-all duration-300 ease-in-out",
+          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#0b0f19] backdrop-blur-xl border-r border-slate-800/80 transition-all duration-300 ease-in-out",
           isCollapsed ? "w-20" : "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Top Header: Brand Logo & Collapse Toggle */}
-        <div className="h-16 flex items-center justify-between px-3.5 border-b border-slate-800/80 bg-slate-900/40">
+        <div className="h-20 flex items-center justify-between px-4 border-b border-slate-800/60">
           <Link
             href="/"
             onClick={closeMobile}
-            className="flex items-center gap-2.5 overflow-hidden group"
+            className="flex items-center gap-3 overflow-hidden group py-2"
           >
-            <div className="relative flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 shadow-md group-hover:scale-105 transition-transform">
-              <img src="/kuiper-mark.png" alt="Kuiper" className="h-full w-full object-contain" />
-              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-              </span>
+            <div className="relative flex-shrink-0 flex items-center justify-center">
+              <img 
+                src={isCollapsed ? "/kuiper-mark.png" : "/kuiper-logo.png"} 
+                alt="Kuiper" 
+                className={cn(
+                  "object-contain transition-all duration-200",
+                  isCollapsed ? "h-10 w-10" : "h-10 w-auto max-w-[170px]"
+                )} 
+              />
             </div>
-
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0 transition-opacity duration-200">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wider text-white">
-                    KUIPER<span className="text-orange-500 font-black">.</span>
-                  </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    MANAGER
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400 truncate font-medium">
-                  AI Decision Intelligence
-                </span>
-              </div>
-            )}
           </Link>
 
           {/* Desktop Collapse / Mobile Close Button */}
@@ -201,7 +196,7 @@ export default function Sidebar() {
 
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isCollapsed ? (
@@ -213,64 +208,37 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Scrollable Navigation Body */}
+        {/* Navigation Body */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-6 scrollbar-thin">
           
-          {/* Main Navigation Section */}
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <div className="px-3 pb-2 text-[10px] font-bold tracking-wider uppercase text-slate-400">
-                Control Hub
-              </div>
-            )}
-
+          {/* Nav List */}
+          <div className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.path}
+                  key={item.title}
                   href={item.path}
                   onClick={closeMobile}
                   title={isCollapsed ? item.title : undefined}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200",
+                    "group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
                     item.active
-                      ? "bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white shadow-md shadow-blue-500/20 font-bold border border-blue-400/20"
-                      : "text-slate-300 hover:bg-slate-800/70 hover:text-white hover:border-slate-700/50 border border-transparent"
+                      ? "bg-indigo-600/15 text-indigo-400 font-semibold border border-indigo-500/20 shadow-sm"
+                      : "text-slate-400 hover:bg-slate-850 hover:text-slate-200 hover:bg-slate-900/60"
                   )}
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center rounded-lg p-1 transition-transform group-hover:scale-110",
-                      item.active ? "text-white" : "text-slate-400 group-hover:text-blue-400"
+                      "flex items-center justify-center transition-colors",
+                      item.active ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
                     )}
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-4.5 w-4.5 flex-shrink-0" />
                   </div>
 
                   {!isCollapsed && (
-                    <div className="flex flex-1 items-center justify-between min-w-0">
-                      <div className="truncate">
-                        <div className="leading-tight">{item.title}</div>
-                        <div className={cn(
-                          "text-[10px] truncate font-normal",
-                          item.active ? "text-blue-100/80" : "text-slate-500"
-                        )}>
-                          {item.subtitle}
-                        </div>
-                      </div>
-
-                      {item.badge && (
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-[9px] font-bold border ml-2 flex-shrink-0",
-                            item.active ? "bg-white/20 text-white border-white/30" : item.badgeColor
-                          )}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
+                    <span className="truncate">{item.title}</span>
                   )}
                 </Link>
               );
@@ -279,11 +247,11 @@ export default function Sidebar() {
 
           {/* Quick Portfolio Blueprints Section */}
           {!isCollapsed && (
-            <div className="space-y-2 pt-2 border-t border-slate-800/80">
+            <div className="space-y-2 pt-3 border-t border-slate-800/60">
               <div className="flex items-center justify-between px-3">
                 <button
                   onClick={() => setProjectsOpen(!projectsOpen)}
-                  className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-300 transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-300 transition-colors"
                 >
                   <FolderKanban className="h-3 w-3 text-slate-400" />
                   <span>Recent Blueprints</span>
@@ -325,7 +293,7 @@ export default function Sidebar() {
                           className={cn(
                             "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-all group",
                             isActive
-                              ? "bg-blue-950/40 text-blue-300 font-semibold border border-blue-800/40"
+                              ? "bg-indigo-950/40 text-indigo-300 font-semibold border border-indigo-800/40"
                               : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
                           )}
                         >
@@ -344,59 +312,52 @@ export default function Sidebar() {
                   <Link
                     href="/create"
                     onClick={closeMobile}
-                    className="flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 px-3 py-1.5 font-medium hover:underline"
+                    className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 px-3 py-1.5 font-medium hover:underline"
                   >
                     <PlusCircle className="h-3 w-3" />
-                    <span>Scope New Project Blueprint</span>
+                    <span>+ New Project Blueprint</span>
                   </Link>
                 </div>
               )}
             </div>
           )}
 
-
-
         </div>
 
-        {/* Bottom Section: User Profile & Role Switcher */}
-        <div className="border-t border-slate-800/80 bg-slate-900/80 p-3 space-y-2">
+        {/* Bottom Section: Team Orion Card matching Reference */}
+        <div className="p-3 border-t border-slate-800/60 bg-slate-900/40">
           
-          {/* User Profile Button */}
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className={cn(
-                "w-full flex items-center rounded-xl p-2 transition-all hover:bg-slate-800 border border-slate-800/80",
+                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-gradient-to-r from-slate-900 to-[#0c1220] border border-slate-800 hover:border-slate-700 shadow-md group",
                 isCollapsed ? "justify-center" : "justify-between"
               )}
-              title={isCollapsed ? `${user?.name} (${role})` : undefined}
+              title={isCollapsed ? "Team Orion • 12 members" : undefined}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm flex-shrink-0",
-                    user?.avatar_color || "bg-blue-600"
-                  )}
-                >
-                  {user?.name ? user.name[0] : "A"}
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Glowing sphere avatar */}
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-500 shadow-md shadow-indigo-500/25 flex-shrink-0">
+                  <div className="h-4 w-4 rounded-full bg-white/20 blur-[1px]" />
                 </div>
 
                 {!isCollapsed && (
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-slate-200 truncate leading-tight">
-                      {user?.name || "Alexander Vance"}
+                    <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-300 transition-colors">
+                      Team Orion
                     </div>
-                    <div className="text-[10px] text-blue-400 font-semibold truncate capitalize">
-                      {role ? role.replace("_", " ") : "Manager"}
+                    <div className="text-[11px] text-slate-400 truncate">
+                      12 members • {role ? role.replace("_", " ") : "Manager"}
                     </div>
                   </div>
                 )}
               </div>
 
               {!isCollapsed && (
-                <ChevronDown className={cn(
-                  "h-3.5 w-3.5 text-slate-400 transition-transform",
-                  roleSwitcherOpen && "rotate-180"
+                <ChevronRight className={cn(
+                  "h-4 w-4 text-slate-400 group-hover:text-white transition-transform",
+                  roleSwitcherOpen && "rotate-90"
                 )} />
               )}
             </button>
@@ -404,7 +365,7 @@ export default function Sidebar() {
             {/* Role Switcher Popover */}
             {roleSwitcherOpen && (
               <div className={cn(
-                "absolute bottom-14 z-50 w-64 rounded-2xl border border-slate-700 bg-[#0c1220] p-3 shadow-2xl backdrop-blur-md space-y-2",
+                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-700 bg-[#0c1220] p-3 shadow-2xl backdrop-blur-md space-y-2",
                 isCollapsed ? "left-16" : "left-0 right-0"
               )}>
                 <div className="px-2 py-1 border-b border-slate-800 flex items-center justify-between">
@@ -445,7 +406,7 @@ export default function Sidebar() {
                           </div>
                         </div>
                         {isCurrent && (
-                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="h-2 w-2 rounded-full bg-indigo-500" />
                         )}
                       </button>
                     );
@@ -458,7 +419,7 @@ export default function Sidebar() {
                     className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors"
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    <span>Sign Out / Change Role</span>
+                    <span>Sign Out / Switch Account</span>
                   </button>
                 </div>
               </div>
