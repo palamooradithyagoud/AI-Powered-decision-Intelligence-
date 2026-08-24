@@ -32,42 +32,15 @@ class AIProjectAnalyzer:
             except Exception as e:
                 print(f"[AI Analyzer] Notice: Gemini SDK init error: {e}")
 
-    def analyze_project(
+    def _build_analysis_prompt(
         self,
         name: str,
         description: str,
         expected_days: int,
         available_employees: int,
         requirements: str
-    ) -> AIAnalysisResult:
-        """
-        Main analysis entrypoint: attempts Gemini generation if configured,
-        otherwise uses the intelligent algorithmic NLP reasoning engine.
-        """
-        if not self.client:
-            self._init_gemini_client()
-
-        if self.client:
-            try:
-                result = self._analyze_with_gemini(name, description, expected_days, available_employees, requirements)
-                if result:
-                    return result
-            except Exception as e:
-                print(f"[AI Analyzer] Gemini API call error, falling back to intelligent rule engine: {e}")
-
-        # Intelligent deterministic / heuristic NLP reasoning engine
-        return self._analyze_algorithmic(name, description, expected_days, available_employees, requirements)
-
-    def _analyze_with_gemini(
-        self,
-        name: str,
-        description: str,
-        expected_days: int,
-        available_employees: int,
-        requirements: str
-    ) -> Optional[AIAnalysisResult]:
-        prompt = f"""
-You are an expert Chief Technology Officer and Senior Technical Project Manager.
+    ) -> str:
+        return f"""You are an expert Chief Technology Officer and Senior Technical Project Manager.
 Analyze the following project thoroughly and return a valid JSON object strictly adhering to the schema.
 
 Project Name: {name}
@@ -168,8 +141,56 @@ Return ONLY a valid JSON object with the following exact keys and structure:
       "critical_skills_needed": ["Senior Backend", "DevOps"]
     }}
   }}
-}}
-"""
+}}"""
+
+    def analyze_project(
+        self,
+        name: str,
+        description: str,
+        expected_days: int,
+        available_employees: int,
+        requirements: str
+    ) -> AIAnalysisResult:
+        """
+        Main analysis entrypoint:
+        1. Primary: attempts Gemini generation.
+        2. Fallback (e.g. rate limit / quota exceeded): cascades to Groq API.
+        3. Tertiary: falls back to intelligent deterministic / heuristic NLP reasoning engine.
+        """
+        if not self.client:
+            self._init_gemini_client()
+
+        # 1. Primary Attempt: Google Gemini API
+        if self.client:
+            try:
+                result = self._analyze_with_gemini(name, description, expected_days, available_employees, requirements)
+                if result:
+                    return result
+            except Exception as e:
+                print(f"[AI Analyzer] Gemini API hit limit or error: {e}")
+
+        # 2. Secondary Fallback Attempt: Groq API
+        print("[AI Analyzer] Cascading to Groq fallback engine...")
+        try:
+            groq_result = self._analyze_with_groq(name, description, expected_days, available_employees, requirements)
+            if groq_result:
+                return groq_result
+        except Exception as groq_err:
+            print(f"[AI Analyzer] Groq fallback error: {groq_err}")
+
+        # 3. Tertiary Fallback: Intelligent heuristic rule engine
+        print("[AI Analyzer] Cascading to intelligent algorithmic reasoning engine...")
+        return self._analyze_algorithmic(name, description, expected_days, available_employees, requirements)
+
+    def _analyze_with_gemini(
+        self,
+        name: str,
+        description: str,
+        expected_days: int,
+        available_employees: int,
+        requirements: str
+    ) -> Optional[AIAnalysisResult]:
+        prompt = self._build_analysis_prompt(name, description, expected_days, available_employees, requirements)
         models_to_try = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
         for mod in models_to_try:
             try:
@@ -180,7 +201,6 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                 )
                 if response and response.text:
                     cleaned = response.text.strip()
-                    # Strip any markdown backticks if present
                     if cleaned.startswith("```json"):
                         cleaned = cleaned[7:]
                     if cleaned.startswith("```"):
@@ -214,7 +234,116 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                     print(f"[AI Analyzer] Successfully analyzed using Gemini Model: {mod}")
                     return AIAnalysisResult(**data)
             except Exception as model_err:
-                print(f"[AI Analyzer] Model {mod} error: {model_err}")
+                print(f"[AI Analyzer] Gemini Model {mod} error: {model_err}")
+                continue
+        return None
+
+    def _analyze_with_groq(
+        self,
+        name: str,
+        description: str,
+        expected_days: int,
+        available_employees: int,
+        requirements: str
+    ) -> Optional[AIAnalysisResult]:
+        """
+        Secondary fallback engine powered by Groq high-speed inference when Gemini
+        hits rate limits or quota caps.
+        """
+        groq_key = os.getenv("GROQ_API_KEY")
+        if not groq_key:
+            return None
+
+        prompt = self._build_analysis_prompt(name, description, expected_days, available_employees, requirements)
+        models_to_try = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'groq/compound-mini', 'openai/gpt-oss-20b', 'groq/compound']
+        import urllib.request
+
+        for mod in models_to_try:
+            try:
+                payload = {
+                    "model": mod,
+                    "messages": [
+                        {"role": "system", "content": "You are an expert enterprise CTO and technical project manager. Return ONLY a single complete valid, raw JSON object adhering strictly to the requested schema without any markdown formatting, preamble, or conversational text. Include all 9 top-level keys."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 4096
+                }
+                if mod in ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b']:
+                    payload["response_format"] = {"type": "json_object"}
+
+                req = urllib.request.Request(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {groq_key}",
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PlanPulse/1.0"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=35) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                    content = resp_data["choices"][0]["message"]["content"]
+                    cleaned = content.strip()
+                    if cleaned.startswith("```json"):
+                        cleaned = cleaned[7:]
+                    if cleaned.startswith("```"):
+                        cleaned = cleaned[3:]
+                    if cleaned.endswith("```"):
+                        cleaned = cleaned[:-3]
+                    cleaned = cleaned.strip()
+
+                    try:
+                        data = json.loads(cleaned)
+                    except Exception:
+                        json_match = re.search(r'(\{[\s\S]*\})', cleaned)
+                        if json_match:
+                            data = json.loads(json_match.group(1))
+                        else:
+                            raise ValueError(f"No JSON found in Groq response for {mod}")
+
+                    # Normalize feasibility status
+                    if "feasibility" in data and isinstance(data["feasibility"], dict):
+                        f_status = str(data["feasibility"].get("status", "FEASIBLE")).upper().strip()
+                        if "CHANGE" in f_status:
+                            data["feasibility"]["status"] = "FEASIBLE WITH CHANGES"
+                        elif "NOT" in f_status or "UNFEASIBLE" in f_status:
+                            data["feasibility"]["status"] = "NOT FEASIBLE"
+                        else:
+                            data["feasibility"]["status"] = "FEASIBLE"
+
+                    # Normalize employee status
+                    if "employee_analysis" in data and isinstance(data["employee_analysis"], dict):
+                        emp_status = str(data["employee_analysis"].get("status", "Sufficient")).strip()
+                        if "short" in emp_status.lower() or "deficit" in emp_status.lower():
+                            data["employee_analysis"]["status"] = "Employee Shortage"
+                        elif "over" in emp_status.lower() or "excess" in emp_status.lower():
+                            data["employee_analysis"]["status"] = "Resource Overload"
+                        else:
+                            data["employee_analysis"]["status"] = "Sufficient"
+
+                    data["engine"] = f"Groq AI ({mod})"
+                    try:
+                        result = AIAnalysisResult(**data)
+                        print(f"[AI Analyzer] Successfully analyzed using Groq Fallback Model: {mod}")
+                        return result
+                    except Exception as val_err:
+                        print(f"[AI Analyzer] Notice: Groq model {mod} returned partial schema ({val_err}), completing with algorithmic synthesis...")
+                        # Merge with algorithmic baseline so all valid Groq fields are preserved
+                        base_dict = self._analyze_algorithmic(name, description, expected_days, available_employees, requirements).model_dump()
+                        for k, v in data.items():
+                            if v is not None and k in base_dict:
+                                if isinstance(v, dict) and isinstance(base_dict[k], dict):
+                                    base_dict[k].update(v)
+                                elif isinstance(v, list) and len(v) > 0:
+                                    base_dict[k] = v
+                                elif isinstance(v, (str, int, float, bool)):
+                                    base_dict[k] = v
+                        base_dict["engine"] = f"Groq AI ({mod})"
+                        print(f"[AI Analyzer] Successfully synthesized complete plan with Groq ({mod}) + Engine")
+                        return AIAnalysisResult(**base_dict)
+            except Exception as e:
+                print(f"[AI Analyzer] Groq Model {mod} error: {e}")
                 continue
         return None
 
