@@ -223,10 +223,10 @@ export default function CreateProjectPage() {
                 Handoff Successfully Dispatched
               </span>
               <h2 className="text-2xl font-bold text-slate-900">
-                Project Transferred to Elena Rostova!
+                Project Dispatched to {createdProject.lead_assigned || "Ishita Rao"}!
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                The technical blueprint, {createdProject.analysis.timeline_breakdown.phases.length}-phase timeline milestones, and sprint deliverable backlog for <strong className="text-slate-900">{createdProject.name}</strong> are now live in the Project Lead workspace.
+                The technical blueprint, {createdProject.analysis.timeline_breakdown.phases.length}-phase timeline milestones, and sprint deliverable backlog for <strong className="text-slate-900">{createdProject.name}</strong> are now in the Project Lead approvals inbox.
               </p>
             </div>
 
@@ -245,7 +245,7 @@ export default function CreateProjectPage() {
                 Sprint Kickoff & Architecture Review: {createdProject.name}
               </p>
               <p className="text-[11px] text-slate-600">
-                Attendees: <strong className="text-slate-800">Alexander Vance (Manager)</strong> & <strong className="text-slate-800">Elena Rostova (Lead)</strong>
+                Attendees: <strong className="text-slate-800">Arjun Reddy (Manager)</strong> & <strong className="text-slate-800">{createdProject.lead_assigned || "Ishita Rao"} (Lead)</strong>
               </p>
             </div>
 
@@ -547,11 +547,11 @@ export default function CreateProjectPage() {
 
               <div className="flex items-center gap-3">
                 <span className="text-xs text-slate-500">
-                  Manager: <strong className="text-slate-800">Alexander Vance</strong>
+                  Manager: <strong className="text-slate-800">Arjun Reddy</strong>
                 </span>
                 <span className="h-3 w-px bg-slate-300" />
                 <span className="text-xs text-slate-500">
-                  Assigned Lead: <strong className="text-[#6366f1]">Elena Rostova</strong>
+                  Assigned Lead: <strong className="text-[#6366f1]">{createdProject.lead_assigned || "Ishita Rao"}</strong>
                 </span>
               </div>
             </div>
@@ -716,14 +716,14 @@ export default function CreateProjectPage() {
                         Sprint Execution Ready
                       </span>
                       <span className="text-xs text-slate-300">
-                        Assignee: <strong className="text-white">Elena Rostova (Project Lead)</strong>
+                        Assignee: <strong className="text-white">{createdProject.lead_assigned || "Ishita Rao"} (Project Lead)</strong>
                       </span>
                     </div>
                     <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                       Satisfied with the AI Blueprint? Dispatch to Sprint Execution!
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
-                      Clicking below dispatches the blueprint, {createdProject.analysis.timeline_breakdown.phases.length}-phase roadmap, and task backlog to Elena Rostova, and auto-schedules the Sprint Kickoff Meeting.
+                      Clicking below dispatches the blueprint, {createdProject.analysis.timeline_breakdown.phases.length}-phase roadmap, and task backlog to {createdProject.lead_assigned || "Ishita Rao"}, and auto-schedules the Sprint Kickoff Meeting.
                     </p>
                   </div>
                 </div>
@@ -738,12 +738,12 @@ export default function CreateProjectPage() {
                     {isSendingToLead ? (
                       <>
                         <RefreshCw className="h-5 w-5 animate-spin" />
-                        <span>Dispatching to Elena Rostova...</span>
+                        <span>Dispatching to Lead...</span>
                       </>
                     ) : createdProject.sent_to_lead ? (
                       <>
                         <Check className="h-5 w-5 text-emerald-400" />
-                        <span>Dispatched to Elena Rostova</span>
+                        <span>Dispatched to {createdProject.lead_assigned || "Ishita Rao"}</span>
                       </>
                     ) : (
                       <>

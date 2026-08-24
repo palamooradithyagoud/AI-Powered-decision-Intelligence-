@@ -8,9 +8,12 @@ import {
   fetchEmployeeProject, 
   fetchProjectStages, 
   updateProjectStage,
+  fetchEmployees,
+  fetchTasks,
+  updateTaskStatus,
   EmployeeProfile
 } from "@/lib/api";
-import { Project } from "@/types";
+import { Project, TaskItem, TaskStatus } from "@/types";
 import Navbar from "@/components/Navbar";
 import { 
   Clock, 
@@ -20,7 +23,15 @@ import {
   ArrowRight,
   BookOpen,
   Bell,
-  Briefcase
+  Briefcase,
+  Users,
+  ChevronDown,
+  Sparkles,
+  Layers,
+  CheckCheck,
+  Zap,
+  Tag,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +47,7 @@ const STAGES_ORDER = ["Planning", "Development", "Testing", "Review", "Deploymen
 const STATUS_OPTIONS = ["To Do", "In Progress", "Review", "Completed"];
 
 function EmployeeDashboardContent() {
-  const { user } = useAuth();
+  const { user, loginAsEmployee } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams ? searchParams.get("tab") : "home";
@@ -45,10 +56,25 @@ function EmployeeDashboardContent() {
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [stages, setStages] = useState<Record<string, string>>({});
+  const [allEmployees, setAllEmployees] = useState<EmployeeProfile[]>([]);
+  const [myTasks, setMyTasks] = useState<TaskItem[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"home" | "project" | "progress" | "profile" | "notifications">("home");
+
+
+  // Load list of all employees for quick switching
+  useEffect(() => {
+    async function loadEmpList() {
+      try {
+        const list = await fetchEmployees();
+        setAllEmployees(list);
+      } catch (err) {
+        console.error("Failed to load employee list:", err);
+      }
+    }
+    loadEmpList();
+  }, []);
 
   // Parse employee number from logged-in user
   useEffect(() => {
@@ -60,23 +86,16 @@ function EmployeeDashboardContent() {
           return;
         }
       }
-      // Default fallback to emp_10 if logged in as default 'employee' role
-      setEmpNum(10);
+      // Default fallback to emp_03 (Rahul Kumar)
+      setEmpNum(3);
     } else {
       // Redirect if not authenticated
       router.push("/login");
     }
   }, [user]);
 
-  // Sync tab with URL search parameter
-  useEffect(() => {
-    if (tabParam) {
-      const validTabs = ["home", "project", "progress", "profile", "notifications"];
-      if (validTabs.includes(tabParam)) {
-        setActiveTab(tabParam as any);
-      }
-    }
-  }, [tabParam]);
+
+
 
   // Load all dashboard data
   const loadDashboardData = async () => {
@@ -84,12 +103,15 @@ function EmployeeDashboardContent() {
     setLoading(true);
     setError(null);
     try {
-      const [profData, projData] = await Promise.all([
+      const empIdStr = `emp_${String(empNum).padStart(2, '0')}`;
+      const [profData, projData, taskList] = await Promise.all([
         fetchEmployeeProfile(empNum),
-        fetchEmployeeProject(empNum)
+        fetchEmployeeProject(empNum),
+        fetchTasks({ assigned_emp_id: empIdStr }).catch(() => [])
       ]);
       setProfile(profData);
       setProject(projData);
+      setMyTasks(taskList);
       
       if (projData && projData.id) {
         const stageData = await fetchProjectStages(projData.id);
@@ -106,6 +128,18 @@ function EmployeeDashboardContent() {
   useEffect(() => {
     loadDashboardData();
   }, [empNum]);
+
+  // Handle task status update directly from employee workbench
+  const handleTaskStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      await updateTaskStatus(taskId, newStatus);
+      setMyTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      );
+    } catch (err) {
+      alert("Failed to update task status");
+    }
+  };
 
   // Calculate completed stages and overall progress percentage
   const completedStagesCount = STAGES_ORDER.filter(s => stages[s] === "Completed").length;
@@ -187,26 +221,53 @@ function EmployeeDashboardContent() {
         
         {/* Dashboard Header Ribbon */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md shadow-xs">
+                {profile.id || `emp_${empNum}`}
+              </span>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                Developer Workbench
+                {profile.name}
               </h1>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200 uppercase tracking-wider">
+              <span className="rounded-full bg-emerald-50 px-3 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200 uppercase tracking-wider">
                 {profile.designation}
               </span>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-slate-500">
-              Manage deliverables, track timelines, and update sprint progress.
+            <p className="text-xs sm:text-sm text-slate-500">
+              Corporate ID: <strong className="text-slate-700">{profile.id || `emp_${empNum}`}</strong> • Experience: <strong className="text-slate-700">{profile.experience}</strong> • Status: <strong className="text-slate-700">{profile.availability}</strong>
             </p>
+          </div>
+
+          {/* Quick Switch Employee Selector (1-40) */}
+          <div className="flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm shrink-0">
+            <Users className="w-4 h-4 text-indigo-600 ml-2" />
+            <label className="text-[11px] font-bold text-slate-600 hidden sm:inline">
+              Switch Employee:
+            </label>
+            <select
+              value={profile.id || `emp_${String(empNum).padStart(2, '0')}`}
+              onChange={(e) => {
+                const targetEmp = allEmployees.find(emp => emp.id === e.target.value);
+                if (targetEmp) {
+                  loginAsEmployee(targetEmp);
+                }
+              }}
+              className="text-xs font-bold bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {allEmployees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.id}: {emp.name} ({emp.designation})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* TAB content area */}
-        <div className="transition-all duration-200">
+        {/* Content area */}
+        <div className="space-y-8">
           
-          {/* TAB 1: HOME PORTAL */}
-          {activeTab === "home" && (
+          {/* SECTION 1: HOME PORTAL */}
+          {(
             <div className="space-y-6">
               {/* Grid Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -219,15 +280,10 @@ function EmployeeDashboardContent() {
                     </h3>
                   </div>
                   {project ? (
-                    <button 
-                      onClick={() => {
-                        router.push("/employee?tab=project");
-                      }}
-                      className="flex items-center gap-1 text-xs font-bold text-[#6366f1] hover:text-[#4f46e5] transition-colors w-max"
-                    >
-                      <span>View Specifications</span>
+                    <span className="flex items-center gap-1 text-xs font-bold text-[#6366f1]">
+                      <span>View Specifications Below</span>
                       <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    </span>
                   ) : (
                     <span className="text-xs text-slate-400">Awaiting project assignment</span>
                   )}
@@ -264,6 +320,111 @@ function EmployeeDashboardContent() {
                     <span className="font-bold text-emerald-600">{profile.availability}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* MY ASSIGNED SPRINT DELIVERABLES SECTION */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-[#6366f1]">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        My Assigned Sprint Deliverables ({myTasks.length})
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Deliverables distributed to you via AI multi-factor competence & bandwidth matching.
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="text-xs font-bold text-[#6366f1] flex items-center gap-1">
+                    <span>All Tasks Below</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </span>
+                </div>
+
+                {myTasks.length === 0 ? (
+                  <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center space-y-2 bg-slate-50/50">
+                    <CheckCircle2 className="h-8 w-8 text-slate-400 mx-auto" />
+                    <h4 className="text-sm font-bold text-slate-800">No Deliverables Assigned Yet</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      Once the Project Lead accepts the project blueprint and runs AI Work Allocation, tasks matched to your skill profile ({profile.designation}) will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {myTasks.map((task) => {
+                      const matchScore = task.match_score || 94;
+                      return (
+                        <div
+                          key={task.id}
+                          className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm hover:border-indigo-200 transition-all flex flex-col justify-between"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="space-y-0.5">
+                                <span className="rounded-md bg-indigo-50 border border-indigo-100 text-[#4f46e5] px-2 py-0.5 text-[10px] font-bold">
+                                  {task.phase_name}
+                                </span>
+                                <h4 className="text-sm font-bold text-slate-900 mt-1">{task.title}</h4>
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold shrink-0">
+                                <Sparkles className="h-3 w-3 text-emerald-600" />
+                                <span>{matchScore}% Match</span>
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {task.description}
+                            </p>
+
+                            {task.ai_rationale && (
+                              <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-2.5 text-[11px] text-slate-600 leading-normal">
+                                <strong className="text-indigo-700 font-bold block mb-0.5">AI Matching Reason:</strong>
+                                <span>{task.ai_rationale}</span>
+                              </div>
+                            )}
+                          </div>
+
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "rounded px-2 py-0.5 text-[10px] font-bold uppercase",
+                                    task.priority === "High"
+                                      ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                      : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  )}
+                                >
+                                  {task.priority}
+                                </span>
+                                <span className="text-slate-400 font-medium">Due Day {task.due_day}</span>
+                              </div>
+
+                              <select
+                                value={task.status}
+                                onChange={(e) => handleTaskStatusChange(task.id, e.target.value as TaskStatus)}
+                                className={cn(
+                                  "rounded-xl px-2.5 py-1 text-xs font-bold focus:outline-none border cursor-pointer shadow-xs",
+                                  task.status === "Completed"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                    : task.status === "In Progress"
+                                    ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                                    : "bg-slate-50 text-slate-700 border-slate-300"
+                                )}
+                              >
+                                <option value="To Do">To Do</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                              </select>
+                            </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Progress & Current Phase Tracker Section */}
@@ -326,15 +487,6 @@ function EmployeeDashboardContent() {
 
                 <div className="flex items-center justify-between text-xs pt-2">
                   <span className="text-slate-500">Current Phase Focus: <strong className="text-slate-900">{getCurrentStage()}</strong></span>
-                  <button 
-                    onClick={() => {
-                      router.push("/employee?tab=progress");
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold text-[#6366f1] hover:text-[#4f46e5]"
-                  >
-                    <span>Update Kanban Board</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               </div>
 
@@ -382,8 +534,109 @@ function EmployeeDashboardContent() {
             </div>
           )}
 
-          {/* TAB 2: ASSIGNED PROJECT SPECIFICATIONS */}
-          {activeTab === "project" && (
+          {/* SECTION: MY ASSIGNED DELIVERABLES */}
+          {(
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+              <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+                    My Assigned Sprint Deliverables ({myTasks.length})
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Direct AI assignments matched to your skillset ({profile.designation}) with live progress controls.
+                  </p>
+                </div>
+                <button
+                  onClick={loadDashboardData}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors self-start sm:self-auto shadow-xs cursor-pointer"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                  <span>Refresh Tasks</span>
+                </button>
+              </div>
+
+              {myTasks.length === 0 ? (
+                <div className="border border-dashed border-slate-200 rounded-3xl p-16 text-center space-y-3 bg-slate-50/50">
+                  <CheckCircle2 className="h-10 w-10 text-slate-400 mx-auto" />
+                  <h3 className="text-base font-bold text-slate-800">No Deliverables Assigned</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    There are currently no active tasks assigned to your employee ID. Once the Lead dispatches project deliverables, they will be listed here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myTasks.map((task) => {
+                    const matchScore = task.match_score || 94;
+                    return (
+                      <div
+                        key={task.id}
+                        className="rounded-2xl border border-slate-200 p-5 space-y-4 bg-white hover:border-indigo-300 transition-all shadow-xs"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-md bg-indigo-50 border border-indigo-100 text-[#4f46e5] px-2.5 py-0.5 text-[10px] font-bold">
+                                {task.phase_name}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-400">
+                                {task.project_name}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-bold text-slate-900 mt-1">{task.title}</h3>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 text-xs font-black shadow-xs">
+                              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>{matchScore}% Match</span>
+                            </span>
+
+                            <select
+                              value={task.status}
+                              onChange={(e) => handleTaskStatusChange(task.id, e.target.value as TaskStatus)}
+                              className={cn(
+                                "rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none border cursor-pointer shadow-xs",
+                                task.status === "Completed"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                  : task.status === "In Progress"
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                                  : "bg-white text-slate-700 border-slate-300"
+                              )}
+                            >
+                              <option value="To Do">To Do</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Completed">Completed</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {task.description}
+                        </p>
+
+                        {task.ai_rationale && (
+                          <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3 text-xs text-slate-700 space-y-0.5">
+                            <strong className="text-indigo-700 font-bold block text-[11px] uppercase tracking-wider">
+                              AI Allocation Rationale:
+                            </strong>
+                            <p className="text-[11px] text-slate-600 leading-relaxed">{task.ai_rationale}</p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                          <span>Priority: <strong className="text-slate-800">{task.priority}</strong></span>
+                          <span>Due Day: <strong className="text-slate-800">Day {task.due_day}</strong></span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SECTION 2: ASSIGNED PROJECT SPECIFICATIONS */}
+          {(
             project ? (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
                 <div className="border-b border-slate-100 pb-4">
@@ -487,8 +740,8 @@ function EmployeeDashboardContent() {
             )
           )}
 
-          {/* TAB 3: PROJECT PROGRESS (5-STAGE KANBAN BOARD) */}
-          {activeTab === "progress" && (
+          {/* SECTION 3: PROJECT PROGRESS (5-STAGE KANBAN BOARD) */}
+          {(
             project ? (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -610,8 +863,8 @@ function EmployeeDashboardContent() {
             )
           )}
 
-          {/* TAB 4: MY PROFILE */}
-          {activeTab === "profile" && (
+          {/* SECTION 4: MY PROFILE */}
+          {(
             <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-8">
               <div className="border-b border-slate-100 pb-4">
                 <h1 className="text-xl md:text-2xl font-bold text-slate-900">My Professional Profile</h1>
@@ -688,24 +941,31 @@ function EmployeeDashboardContent() {
 
                   {/* Previous project contributions */}
                   <div className="rounded-2xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Previous Project Contributions</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {profile.prev_projects.map((projName: string) => (
-                        <div key={projName} className="flex items-center gap-2 border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
-                          <BookOpen className="h-4 w-4 text-[#6366f1] shrink-0" />
-                          <span className="text-xs font-bold text-slate-700 truncate">{projName}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Previous Project Portfolio & Deliverables</h3>
+                    {profile.prev_projects && profile.prev_projects.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {profile.prev_projects.map((projName: string) => (
+                          <div key={projName} className="flex items-center gap-2.5 border border-slate-200 rounded-xl p-3 bg-white shadow-sm hover:border-indigo-200 transition-colors">
+                            <BookOpen className="h-4 w-4 text-[#6366f1] shrink-0" />
+                            <span className="text-xs font-bold text-slate-800 truncate">{projName}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 bg-white">
+                        No previous projects logged in corporate records.
+                      </div>
+                    )}
                   </div>
+
 
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: NOTIFICATIONS */}
-          {activeTab === "notifications" && (
+          {/* SECTION 5: NOTIFICATIONS */}
+          {(
             <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
               <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
                 <div>

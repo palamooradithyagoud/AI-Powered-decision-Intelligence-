@@ -540,26 +540,55 @@ export default function ManagerDashboard() {
                             />
                           )}
 
-                          <span
-                            className={cn(
-                              "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                              project.status === "Active"
-                                ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                                : project.status === "Completed"
-                                ? "bg-purple-50 text-purple-700 border border-purple-200"
-                                : "bg-rose-50 text-rose-700 border border-rose-200"
-                            )}
-                          >
-                            {project.status}
-                          </span>
-
-                          {project.sent_to_lead && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                          {/* Lead Review & Execution Status Badges */}
+                          {project.status === "Pending Lead Review" || project.lead_status === "Pending Review" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Pending Lead Review
+                            </span>
+                          ) : project.status === "Rejected by Lead" || project.lead_status === "Rejected" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-300">
+                              <AlertTriangle className="h-3 w-3 text-rose-600" />
+                              Rejected by Lead
+                            </span>
+                          ) : project.lead_status === "Accepted" ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
                               <Check className="h-3 w-3 text-emerald-600" />
-                              Dispatched to Elena Rostova
+                              Accepted & In Execution
+                            </span>
+                          ) : (
+                            <span
+                              className={cn(
+                                "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                project.status === "Active"
+                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  : project.status === "Completed"
+                                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                  : "bg-slate-100 text-slate-700 border border-slate-200"
+                              )}
+                            >
+                              {project.status}
+                            </span>
+                          )}
+
+                          {project.sent_to_lead && project.lead_status !== "Rejected" && project.lead_status !== "Accepted" && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200">
+                              <Check className="h-3 w-3 text-indigo-600" />
+                              Dispatched to {project.lead_assigned || "Ishita Rao"}
                             </span>
                           )}
                         </div>
+
+                        {/* If Rejected by Lead, display rejection alert banner */}
+                        {project.rejection_reason && (project.status === "Rejected by Lead" || project.lead_status === "Rejected") && (
+                          <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-2.5 text-xs text-rose-900 flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-[11px] text-rose-800 uppercase tracking-wider block">Lead Rejection Feedback:</span>
+                              <p className="text-[11px] text-rose-700 leading-normal">{project.rejection_reason}</p>
+                            </div>
+                          </div>
+                        )}
 
                         <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
                           {project.description}

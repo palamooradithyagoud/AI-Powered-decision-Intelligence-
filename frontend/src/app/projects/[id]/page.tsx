@@ -177,6 +177,7 @@ export default function ProjectBlueprintPage({
       />
 
       {/* Celebratory Handoff Modal */}
+      {/* Handoff Modal */}
       {isHandoffModalOpen && project && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 text-center">
@@ -188,13 +189,13 @@ export default function ProjectBlueprintPage({
             <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
                 <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
-                Handoff Successfully Dispatched
+                Dispatched for Lead Review
               </span>
               <h2 className="text-2xl font-bold text-slate-900">
-                Project Dispatched to Elena Rostova!
+                Project Dispatched to {project.lead_assigned || "Ishita Rao"}!
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                The technical blueprint, {timeline_breakdown.phases.length}-phase timeline milestones, and sprint deliverable backlog for <strong className="text-slate-900">{project.name}</strong> are now live in the Project Lead workspace.
+                The technical blueprint, {timeline_breakdown.phases.length}-phase timeline milestones, and sprint deliverable backlog for <strong className="text-slate-900">{project.name}</strong> are now in the Project Lead approvals inbox.
               </p>
             </div>
 
@@ -213,7 +214,7 @@ export default function ProjectBlueprintPage({
                 Sprint Kickoff & Architecture Review: {project.name}
               </p>
               <p className="text-[11px] text-slate-600">
-                Attendees: <strong className="text-slate-800">Alexander Vance (Manager)</strong> & <strong className="text-slate-800">Elena Rostova (Lead)</strong>
+                Attendees: <strong className="text-slate-800">Arjun Reddy (Manager)</strong> & <strong className="text-slate-800">{project.lead_assigned || "Ishita Rao"} (Lead)</strong>
               </p>
             </div>
 
@@ -259,6 +260,34 @@ export default function ProjectBlueprintPage({
 
         {/* Master Project Executive Header Card */}
         <div className="blueprint-card rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+          
+          {/* Rejection Alert Banner if Rejected by Lead */}
+          {project.rejection_reason && (project.status === "Rejected by Lead" || project.lead_status === "Rejected") && (
+            <div className="rounded-2xl border-2 border-rose-300 bg-gradient-to-r from-rose-50 via-red-50 to-white p-5 shadow-sm space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-600 text-white shrink-0 mt-0.5">
+                  <AlertOctagon className="h-5 w-5" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-rose-900">
+                      Project Rejected by Lead: {project.lead_assigned || "Ishita Rao"}
+                    </h3>
+                    <span className="rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 border border-rose-300">
+                      Requires Refinement
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-800 font-medium leading-relaxed">
+                    "{project.rejection_reason}"
+                  </p>
+                  <p className="text-[11px] text-rose-600 pt-0.5">
+                    Adjust the timeline or available headcount using the What-If Sandbox or Re-Analyze with updated requirements, then resubmit to the Project Lead.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
             {/* Project Details */}
@@ -272,12 +301,25 @@ export default function ProjectBlueprintPage({
                   score={feasibility.feasibility_score}
                   size="lg"
                 />
-                {project.sent_to_lead && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
-                    <Check className="h-3.5 w-3.5 text-emerald-600" />
-                    Dispatched to Elena Rostova
+
+                {/* Lead Status Badges */}
+                {project.status === "Pending Lead Review" || project.lead_status === "Pending Review" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-300 shadow-xs">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    Pending Lead Review ({project.lead_assigned || "Ishita Rao"})
                   </span>
-                )}
+                ) : project.status === "Rejected by Lead" || project.lead_status === "Rejected" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-800 border border-rose-300">
+                    <AlertOctagon className="h-3.5 w-3.5 text-rose-600" />
+                    Rejected by Lead
+                  </span>
+                ) : project.lead_status === "Accepted" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200 shadow-xs">
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    Accepted & In Execution
+                  </span>
+                ) : null}
+
                 {analysis.engine && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-[#4f46e5] border border-indigo-200">
                     <Sparkles className="h-3.5 w-3.5 text-[#6366f1]" />
@@ -313,8 +355,8 @@ export default function ProjectBlueprintPage({
 
             {/* Quick Actions Buttons */}
             <div className="no-print flex flex-wrap items-center gap-2.5 shrink-0">
-              {/* Send to Project Lead Action */}
-              {!project.sent_to_lead ? (
+              {/* Send or Resubmit to Project Lead Action */}
+              {!project.sent_to_lead || project.status === "Rejected by Lead" || project.lead_status === "Rejected" ? (
                 <button
                   onClick={handleSendToLead}
                   disabled={isSendingToLead}
@@ -328,16 +370,16 @@ export default function ProjectBlueprintPage({
                   ) : (
                     <>
                       <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                      <span>Send to Project Lead →</span>
+                      <span>{project.lead_status === "Rejected" ? "Resubmit to Lead →" : "Send to Project Lead →"}</span>
                     </>
                   )}
                 </button>
               ) : (
                 <Link
                   href="/lead"
-                  className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors shadow-xs"
+                  className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-xs font-bold text-[#4f46e5] hover:bg-indigo-100 transition-colors shadow-xs"
                 >
-                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  <Check className="h-3.5 w-3.5 text-indigo-600" />
                   <span>Lead Workspace →</span>
                 </Link>
               )}
@@ -743,8 +785,8 @@ export default function ProjectBlueprintPage({
                 </h4>
                 <p className="text-xs text-slate-300">
                   {project.sent_to_lead
-                    ? "This project is currently dispatched to Elena Rostova for sprint tracking."
-                    : "Transfer the feasibility plan and task deliverables directly to Project Lead Elena Rostova."}
+                    ? `This project has been sent to ${project.lead_assigned || "Ishita Rao"} for feasibility review & work allocation.`
+                    : `Transfer the feasibility plan and task deliverables directly to Project Lead ${project.lead_assigned || "Ishita Rao"}.`}
                 </p>
               </div>
 

@@ -54,8 +54,8 @@ export default function Navbar() {
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
       role: "manager",
-      title: "Manager",
-      name: "Alexander Vance",
+      title: "Project Manager",
+      name: "Arjun Reddy (emp_01)",
       path: "/",
       icon: Briefcase,
       color: "bg-indigo-600",
@@ -63,20 +63,21 @@ export default function Navbar() {
     {
       role: "project_lead",
       title: "Project Lead",
-      name: "Elena Rostova",
+      name: "Ishita Rao (emp_18)",
       path: "/lead",
       icon: Layers,
       color: "bg-purple-600",
     },
     {
       role: "employee",
-      title: "Employee",
-      name: "Emma Watson",
+      title: "Developer / Employee",
+      name: "Rahul Kumar (emp_03)",
       path: "/employee",
       icon: Users,
       color: "bg-emerald-600",
     },
   ];
+
 
   const handleRoleSwitch = (newRole: UserRole, targetPath: string) => {
     switchRole(newRole);
@@ -319,13 +320,19 @@ export default function Navbar() {
               }}
               className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1 hover:border-slate-300 transition-all text-left group shadow-sm"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0f172a] text-xs font-bold text-white shadow-sm">
-                PR
+              <div className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm",
+                user?.avatar_color || "bg-indigo-600"
+              )}>
+                {user?.name ? user.name.split(" ").map(n => n[0]).join("").substring(0, 2) : "EM"}
               </div>
 
               <div className="hidden sm:block pr-1">
                 <div className="text-xs font-bold text-slate-800 leading-tight">
-                  {user?.name || "Alexander Vance"}
+                  {user?.name || "Corporate User"}
+                </div>
+                <div className="text-[10px] text-indigo-600 font-mono font-semibold">
+                  {user?.id || "emp_01"}
                 </div>
               </div>
 
@@ -337,12 +344,21 @@ export default function Navbar() {
 
             {/* Role Switcher Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl space-y-2 text-slate-800">
-                <div className="px-2 py-1 border-b border-slate-100">
+              <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl space-y-2 text-slate-800">
+                <div className="px-2 py-1.5 border-b border-slate-100 bg-slate-50 rounded-xl">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Switch Active Role (Demo)
+                    Signed in as:
+                  </span>
+                  <div className="font-bold text-xs text-slate-900 truncate">{user?.name}</div>
+                  <div className="text-[11px] text-slate-500 truncate">{user?.title || user?.email}</div>
+                </div>
+
+                <div className="px-2 pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Quick Role Switcher:
                   </span>
                 </div>
+
 
                 <div className="space-y-1">
                   {roleOptions.map((opt) => {

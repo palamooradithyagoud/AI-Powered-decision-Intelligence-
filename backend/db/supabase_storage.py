@@ -13,174 +13,77 @@ from models.schemas import (
 )
 from services.ai_analyzer import analyzer_instance
 
+from db.employees_data import (
+    EMPLOYEES_DATA,
+    get_all_employees,
+    get_employee_by_num,
+    get_employee_by_id,
+    get_employee_by_email_or_name,
+    authenticate_employee
+)
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ezigpxtfnkzdhekrlmkd.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
-# Predefined Authentication Users
+# Primary Demo Role Users mapped to EMPLOYEE_ID.xlsx records
 DEMO_USERS: Dict[str, User] = {
     "manager@company.ai": User(
-        id="usr_manager_01",
+        id="emp_01",
         email="manager@company.ai",
-        name="Alexander Vance",
+        name="Arjun Reddy",
         role="manager",
-        title="VP of Engineering / Portfolio Manager",
-        avatar_color="bg-blue-600"
+        title="Project Manager",
+        avatar_color="bg-indigo-600"
     ),
     "lead@company.ai": User(
-        id="usr_lead_01",
+        id="emp_18",
         email="lead@company.ai",
-        name="Elena Rostova",
+        name="Ishita Rao",
         role="project_lead",
-        title="Senior Technical Project Lead",
+        title="Product Manager / Sprint Lead",
         avatar_color="bg-purple-600"
     ),
-    "shivanallella@gmail.com": User(
-        id="emp_01",
-        email="shivanallella@gmail.com",
-        name="Emma Watson",
+    "employee@company.ai": User(
+        id="emp_03",
+        email="employee@company.ai",
+        name="Rahul Kumar",
         role="employee",
-        title="UI/UX Engineer",
+        title="Frontend Developer",
         avatar_color="bg-emerald-600"
+    ),
+    "shivanallella@gmail.com": User(
+        id="emp_06",
+        email="shivanallella@gmail.com",
+        name="Ananya Rao",
+        role="employee",
+        title="UI/UX Designer",
+        avatar_color="bg-teal-600"
     )
 }
 
-EMPLOYEES_PROFILES = {
-    1: {
-        "name": "Emma Watson",
-        "designation": "UI/UX Engineer",
-        "skills": ["Figma", "Adobe XD", "Prototyping", "User Research", "Wireframing"],
-        "experience": "4 Years",
-        "workload": 65,
-        "availability": "Available (35% bandwidth)",
-        "prev_projects": []
-    },
-    2: {
-        "name": "James Smith",
-        "designation": "Backend Engineer",
-        "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker", "gRPC"],
-        "experience": "6 Years",
-        "workload": 80,
-        "availability": "Available (20% bandwidth)",
-        "prev_projects": []
-    },
-    3: {
-        "name": "Sarah Jenkins",
-        "designation": "Frontend Engineer",
-        "skills": ["React", "Next.js", "TypeScript", "Tailwind CSS", "Redux", "HTML5"],
-        "experience": "3 Years",
-        "workload": 70,
-        "availability": "Available (30% bandwidth)",
-        "prev_projects": []
-    },
-    4: {
-        "name": "Alisha Shah",
-        "designation": "AI Engineer",
-        "skills": ["Python", "PyTorch", "TensorFlow", "Hugging Face", "LLMs", "Google Gemini API"],
-        "experience": "5 Years",
-        "workload": 95,
-        "availability": "Busy (5% bandwidth)",
-        "prev_projects": []
-    },
-    5: {
-        "name": "Marcus Johnson",
-        "designation": "DevOps Engineer",
-        "skills": ["AWS", "Kubernetes", "Docker", "CI/CD", "Terraform", "GitHub Actions"],
-        "experience": "7 Years",
-        "workload": 85,
-        "availability": "Available (15% bandwidth)",
-        "prev_projects": []
-    },
-    10: {
-        "name": "Devon Chen",
-        "designation": "Full-Stack & AI Engineer",
-        "skills": ["Next.js", "FastAPI", "React", "TypeScript", "Python", "Google Gemini API"],
-        "experience": "5 Years",
-        "workload": 85,
-        "availability": "Available (15% bandwidth)",
-        "prev_projects": []
-    },
-    11: {
-        "name": "Sarah Jenkins",
-        "designation": "Frontend Developer",
-        "skills": ["React", "TypeScript", "Tailwind CSS", "Next.js", "Redux", "Figma"],
-        "experience": "3 Years",
-        "workload": 70,
-        "availability": "Available (30% bandwidth)",
-        "prev_projects": []
-    },
-    12: {
-        "name": "Michael Chang",
-        "designation": "Backend Developer",
-        "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker", "Node.js"],
-        "experience": "4 Years",
-        "workload": 90,
-        "availability": "Busy (10% bandwidth)",
-        "prev_projects": []
-    },
-    13: {
-        "name": "Priya Patel",
-        "designation": "QA Engineer",
-        "skills": ["Selenium", "Jest", "Cypress", "Python", "API Testing", "LoadRunner"],
+# Alias mapping for backwards compatibility
+EMPLOYEES_PROFILES = EMPLOYEES_DATA
+
+def get_employee_profile(num: int) -> dict:
+    """Retrieve full employee profile directly from EMPLOYEE_ID.xlsx dataset."""
+    emp = get_employee_by_num(num)
+    if emp:
+        return emp
+    # Fallback to id lookup if needed
+    emp_by_id = get_employee_by_id(f"emp_{num:02d}")
+    if emp_by_id:
+        return emp_by_id
+    # Default fallback
+    return EMPLOYEES_DATA.get(1, {
+        "name": f"Employee {num}",
+        "designation": "Software Engineer",
+        "skills": ["Python", "JavaScript"],
         "experience": "3 Years",
         "workload": 60,
         "availability": "Available (40% bandwidth)",
         "prev_projects": []
-    },
-    14: {
-        "name": "Marcus Johnson",
-        "designation": "DevOps Engineer",
-        "skills": ["AWS", "Kubernetes", "Docker", "GitHub Actions", "Terraform", "Linux"],
-        "experience": "6 Years",
-        "workload": 80,
-        "availability": "Available (20% bandwidth)",
-        "prev_projects": []
-    },
-    15: {
-        "name": "Alisha Shah",
-        "designation": "AI/ML Engineer",
-        "skills": ["PyTorch", "TensorFlow", "Hugging Face", "Python", "OpenCV", "NLP"],
-        "experience": "4 Years",
-        "workload": 95,
-        "availability": "Busy (5% bandwidth)",
-        "prev_projects": []
-    }
-}
+    })
 
-def get_employee_profile(num: int) -> dict:
-    if num in EMPLOYEES_PROFILES:
-        return EMPLOYEES_PROFILES[num]
-    
-    designations = ["Frontend Developer", "Backend Developer", "QA Engineer", "DevOps Engineer", "AI/ML Engineer", "Data Scientist", "UI/UX Designer"]
-    skills_map = {
-        "Frontend Developer": ["React", "Next.js", "TypeScript", "Tailwind CSS", "CSS3", "HTML5"],
-        "Backend Developer": ["Python", "FastAPI", "PostgreSQL", "MongoDB", "Redis", "Docker"],
-        "QA Engineer": ["Jest", "Cypress", "Selenium", "API Testing", "Postman", "CI/CD"],
-        "DevOps Engineer": ["AWS", "Docker", "Kubernetes", "CI/CD", "Terraform", "GitHub Actions"],
-        "AI/ML Engineer": ["Python", "PyTorch", "TensorFlow", "scikit-learn", "Hugging Face", "LLMs"],
-        "Data Scientist": ["Python", "Pandas", "NumPy", "SQL", "Data Visualization", "R"],
-        "UI/UX Designer": ["Figma", "Adobe XD", "Prototyping", "User Research", "Wireframing"]
-    }
-    
-    designation = designations[num % len(designations)]
-    skills = skills_map[designation]
-    first_names = ["James", "Emma", "John", "Olivia", "Robert", "Sophia", "William", "Isabella", "David", "Mia", "Richard", "Charlotte", "Joseph", "Amelia", "Thomas", "Evelyn"]
-    last_names = ["Smith", "Jones", "Taylor", "Brown", "Wilson", "White", "Miller", "Davis", "Garcia", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Anderson"]
-    
-    name = f"{first_names[num % len(first_names)]} {last_names[(num + 3) % len(last_names)]}"
-    workload = (num * 7) % 50 + 50
-    band = 100 - workload
-    availability = f"Available ({band}% bandwidth)" if band > 10 else "Busy (Fully Allocated)"
-    experience = f"{((num * 3) % 8) + 2} Years"
-    
-    return {
-        "name": name,
-        "designation": designation,
-        "skills": skills,
-        "experience": experience,
-        "workload": workload,
-        "availability": availability,
-        "prev_projects": []
-    }
 
 
 class SupabaseStorage:
@@ -206,12 +109,23 @@ class SupabaseStorage:
             if row_copy.get("sent_to_lead") is None:
                 row_copy["sent_to_lead"] = analysis_data.get("sent_to_lead", False)
             if row_copy.get("lead_assigned") is None:
-                row_copy["lead_assigned"] = analysis_data.get("lead_assigned", "Elena Rostova")
+                row_copy["lead_assigned"] = analysis_data.get("lead_assigned", "Ishita Rao")
             if row_copy.get("sent_to_lead_at") is None:
                 row_copy["sent_to_lead_at"] = analysis_data.get("sent_to_lead_at")
+            if row_copy.get("lead_status") is None:
+                row_copy["lead_status"] = analysis_data.get("lead_status", "Pending Review" if row_copy.get("sent_to_lead") else "None")
+            if row_copy.get("rejection_reason") is None:
+                row_copy["rejection_reason"] = analysis_data.get("rejection_reason")
+            if row_copy.get("lead_accepted_at") is None:
+                row_copy["lead_accepted_at"] = analysis_data.get("lead_accepted_at")
+            if row_copy.get("lead_rejected_at") is None:
+                row_copy["lead_rejected_at"] = analysis_data.get("lead_rejected_at")
+            if row_copy.get("ai_work_allocated") is None:
+                row_copy["ai_work_allocated"] = analysis_data.get("ai_work_allocated", False)
         else:
             row_copy["sent_to_lead"] = row_copy.get("sent_to_lead", False)
-            row_copy["lead_assigned"] = row_copy.get("lead_assigned", "Elena Rostova")
+            row_copy["lead_assigned"] = row_copy.get("lead_assigned", "Ishita Rao")
+            row_copy["lead_status"] = row_copy.get("lead_status", "None")
         return Project(**row_copy)
 
     def _serialize_project_row(self, project: Project) -> dict:
@@ -220,6 +134,11 @@ class SupabaseStorage:
             d["analysis"]["sent_to_lead"] = project.sent_to_lead
             d["analysis"]["lead_assigned"] = project.lead_assigned
             d["analysis"]["sent_to_lead_at"] = project.sent_to_lead_at
+            d["analysis"]["lead_status"] = project.lead_status
+            d["analysis"]["rejection_reason"] = project.rejection_reason
+            d["analysis"]["lead_accepted_at"] = project.lead_accepted_at
+            d["analysis"]["lead_rejected_at"] = project.lead_rejected_at
+            d["analysis"]["ai_work_allocated"] = project.ai_work_allocated
         
         # Keep base SQL table columns
         base_keys = {
@@ -268,7 +187,7 @@ class SupabaseStorage:
             requirements=data.requirements
         )
 
-        status = "At-Risk" if analysis.feasibility.status == "NOT FEASIBLE" else "Active"
+        status = "At-Risk" if analysis.feasibility.status == "NOT FEASIBLE" else "Planning"
 
         project = Project(
             id=proj_id,
@@ -279,8 +198,13 @@ class SupabaseStorage:
             requirements=data.requirements,
             status=status,
             sent_to_lead=False,
-            lead_assigned="Elena Rostova",
+            lead_assigned="Ishita Rao",
             sent_to_lead_at=None,
+            lead_status="None",
+            rejection_reason=None,
+            lead_accepted_at=None,
+            lead_rejected_at=None,
+            ai_work_allocated=False,
             created_at=now_iso,
             updated_at=now_iso,
             analysis=analysis
@@ -291,47 +215,23 @@ class SupabaseStorage:
                 row_data = self._serialize_project_row(project)
                 self.client.table("projects").insert(row_data).execute()
 
-                # Insert sprint tasks generated for this project
-                for p in analysis.timeline_breakdown.phases:
-                    for deliv in p.key_deliverables:
-                        task_id = str(uuid.uuid4())
-                        if "ui" in p.phase_name.lower():
-                            role = "UI/UX Engineer"
-                            assigned_to = "Emma Watson"
-                        elif "frontend" in p.phase_name.lower():
-                            role = "Frontend Engineer"
-                            assigned_to = "Sarah Jenkins"
-                        elif "backend" in p.phase_name.lower() or "api" in p.phase_name.lower():
-                            role = "Backend Engineer"
-                            assigned_to = "James Smith"
-                        elif "ai" in p.phase_name.lower() or "ml" in p.phase_name.lower():
-                            role = "AI Engineer"
-                            assigned_to = "Alisha Shah"
-                        elif "testing" in p.phase_name.lower() or "qa" in p.phase_name.lower():
-                            role = "QA Engineer"
-                            assigned_to = "Priya Patel"
-                        else:
-                            role = "DevOps Engineer"
-                            assigned_to = "Marcus Johnson"
+                # Automatically generate intelligent AI task allocations using the 40 real employees
+                all_employees = get_all_employees()
+                tasks = analyzer_instance.allocate_tasks_to_employees(
+                    project_id=proj_id,
+                    project_name=data.name,
+                    project_description=data.description,
+                    phases=analysis.timeline_breakdown.phases,
+                    employees=all_employees
+                )
 
-                        task_data = {
-                            "id": task_id,
-                            "project_id": proj_id,
-                            "project_name": data.name,
-                            "phase_name": p.phase_name,
-                            "title": deliv,
-                            "description": f"Deliverable for {p.phase_name}: {deliv}",
-                            "assigned_role": role,
-                            "assigned_to": assigned_to,
-                            "status": "To Do",
-                            "priority": "High" if "core" in p.phase_name.lower() or "planning" in p.phase_name.lower() else "Medium",
-                            "due_day": p.end_day,
-                            "created_at": now_iso
-                        }
-                        try:
-                            self.client.table("tasks").insert(task_data).execute()
-                        except Exception:
-                            pass
+                for t in tasks:
+                    task_dict = t.model_dump()
+                    task_dict["created_at"] = now_iso
+                    try:
+                        self.client.table("tasks").insert(task_dict).execute()
+                    except Exception:
+                        pass
             except Exception as e:
                 print(f"[SupabaseStorage] create_project error: {e}")
 
@@ -342,38 +242,36 @@ class SupabaseStorage:
         if not project:
             return None
 
-        name = new_data.name if new_data else project.name
-        description = new_data.description if new_data else project.description
-        expected_days = new_data.expected_days if new_data else project.expected_days
-        available_employees = new_data.available_employees if new_data else project.available_employees
-        requirements = new_data.requirements if new_data else project.requirements
-
-        analysis = analyzer_instance.analyze_project(
-            name=name,
-            description=description,
-            expected_days=expected_days,
-            available_employees=available_employees,
-            requirements=requirements
+        data_to_use = new_data or ProjectCreate(
+            name=project.name,
+            description=project.description,
+            expected_days=project.expected_days,
+            available_employees=project.available_employees,
+            requirements=project.requirements
         )
 
-        status = "At-Risk" if analysis.feasibility.status == "NOT FEASIBLE" else "Active"
+        new_analysis = analyzer_instance.analyze_project(
+            name=data_to_use.name,
+            description=data_to_use.description,
+            expected_days=data_to_use.expected_days,
+            available_employees=data_to_use.available_employees,
+            requirements=data_to_use.requirements
+        )
+
         now_iso = datetime.now().isoformat()
+        status = "At-Risk" if new_analysis.feasibility.status == "NOT FEASIBLE" else "Planning"
 
-        updated_project = Project(
-            id=project.id,
-            name=name,
-            description=description,
-            expected_days=expected_days,
-            available_employees=available_employees,
-            requirements=requirements,
-            status=status,
-            sent_to_lead=project.sent_to_lead,
-            lead_assigned=project.lead_assigned,
-            sent_to_lead_at=project.sent_to_lead_at,
-            created_at=project.created_at,
-            updated_at=now_iso,
-            analysis=analysis
-        )
+        updated_dict = project.model_dump()
+        updated_dict["name"] = data_to_use.name
+        updated_dict["description"] = data_to_use.description
+        updated_dict["expected_days"] = data_to_use.expected_days
+        updated_dict["available_employees"] = data_to_use.available_employees
+        updated_dict["requirements"] = data_to_use.requirements
+        updated_dict["status"] = status
+        updated_dict["updated_at"] = now_iso
+        updated_dict["analysis"] = new_analysis
+
+        updated_project = Project(**updated_dict)
 
         if self.client:
             try:
@@ -392,9 +290,10 @@ class SupabaseStorage:
         now_iso = datetime.now().isoformat()
         updated_dict = project.model_dump()
         updated_dict["sent_to_lead"] = True
-        updated_dict["lead_assigned"] = "Elena Rostova"
+        updated_dict["lead_status"] = "Pending Review"
+        updated_dict["lead_assigned"] = "Ishita Rao"
         updated_dict["sent_to_lead_at"] = now_iso
-        updated_dict["status"] = "Active"
+        updated_dict["status"] = "Pending Lead Review"
         updated_dict["updated_at"] = now_iso
 
         updated_project = Project(**updated_dict)
@@ -403,26 +302,106 @@ class SupabaseStorage:
             try:
                 row_data = self._serialize_project_row(updated_project)
                 self.client.table("projects").update(row_data).eq("id", project_id).execute()
-                
-                # Automatically schedule Sprint Kickoff meeting with Project Lead Elena Rostova
-                today_str = datetime.now().strftime("%Y-%m-%d")
-                self.create_meeting(MeetingCreate(
-                    title=f"Sprint Kickoff & Architecture Review: {project.name}",
-                    project_id=project.id,
-                    project_name=project.name,
-                    date=today_str,
-                    start_time="10:00 AM",
-                    end_time="11:00 AM",
-                    duration_minutes=60,
-                    type="Sprint Planning",
-                    attendees=["Alexander Vance", "Elena Rostova"],
-                    location_or_link="Google Meet (meet.google.com/kuiper-handoff)",
-                    agenda=f"Formal Manager-to-Lead sprint handoff for {project.name}. Review deliverables, resource assignments, and activate execution milestones."
-                ))
             except Exception as e:
                 print(f"[SupabaseStorage] send_to_lead error: {e}")
 
         return updated_project
+
+    def lead_action(self, project_id: str, action: str, rejection_reason: Optional[str] = None) -> Optional[Project]:
+        """Process Lead decision: Accept or Reject project with structured reasoning."""
+        project = self.get_project(project_id)
+        if not project:
+            return None
+
+        now_iso = datetime.now().isoformat()
+        updated_dict = project.model_dump()
+        
+        if action.lower() == "accept":
+            updated_dict["lead_status"] = "Accepted"
+            updated_dict["status"] = "Active"
+            updated_dict["lead_accepted_at"] = now_iso
+            updated_dict["rejection_reason"] = None
+            
+            # Automatically schedule kickoff meeting with Project Lead
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            self.create_meeting(MeetingCreate(
+                title=f"Sprint Kickoff & Architecture Alignment: {project.name}",
+                project_id=project.id,
+                project_name=project.name,
+                date=today_str,
+                start_time="10:00 AM",
+                end_time="11:00 AM",
+                duration_minutes=60,
+                type="Sprint Planning",
+                attendees=["Arjun Reddy", "Ishita Rao"],
+                location_or_link="Google Meet (meet.google.com/kuiper-sprint)",
+                agenda=f"Project Lead accepted {project.name}. Review AI work allocations, resource bandwidth, and kick off Sprint execution."
+            ))
+        else: # reject
+            updated_dict["lead_status"] = "Rejected"
+            updated_dict["status"] = "Rejected by Lead"
+            updated_dict["rejection_reason"] = rejection_reason or "Scope and timeline requires refinement before execution."
+            updated_dict["lead_rejected_at"] = now_iso
+
+        updated_dict["updated_at"] = now_iso
+        updated_project = Project(**updated_dict)
+
+        if self.client:
+            try:
+                row_data = self._serialize_project_row(updated_project)
+                self.client.table("projects").update(row_data).eq("id", project_id).execute()
+            except Exception as e:
+                print(f"[SupabaseStorage] lead_action error: {e}")
+
+        return updated_project
+
+    def ai_allocate_tasks(self, project_id: str) -> List[TaskItem]:
+        """Run AI Smart Work Allocation matching project deliverables against all 40 employees."""
+        project = self.get_project(project_id)
+        if not project:
+            return []
+
+        all_employees = get_all_employees()
+        return analyzer_instance.allocate_tasks_to_employees(
+            project_id=project.id,
+            project_name=project.name,
+            project_description=project.description,
+            phases=project.analysis.timeline_breakdown.phases,
+            employees=all_employees
+        )
+
+    def confirm_task_allocation(self, project_id: str, tasks: List[TaskItem]) -> bool:
+        """Save confirmed AI-allocated tasks to database and update project status."""
+        project = self.get_project(project_id)
+        if not project:
+            return False
+
+        now_iso = datetime.now().isoformat()
+        
+        # Mark project as ai_work_allocated
+        updated_dict = project.model_dump()
+        updated_dict["ai_work_allocated"] = True
+        updated_dict["updated_at"] = now_iso
+        updated_project = Project(**updated_dict)
+
+        if self.client:
+            try:
+                row_data = self._serialize_project_row(updated_project)
+                self.client.table("projects").update(row_data).eq("id", project_id).execute()
+
+                # Replace old tasks for this project
+                self.client.table("tasks").delete().eq("project_id", project_id).execute()
+
+                for t in tasks:
+                    t_dict = t.model_dump()
+                    t_dict["created_at"] = now_iso
+                    self.client.table("tasks").insert(t_dict).execute()
+
+                return True
+            except Exception as e:
+                print(f"[SupabaseStorage] confirm_task_allocation error: {e}")
+                return False
+        return True
 
     def delete_project(self, project_id: str) -> bool:
         if not self.client:
@@ -459,12 +438,25 @@ class SupabaseStorage:
 
     # ================= AUTH =================
     def authenticate_user(self, email: str, role: Optional[UserRole] = None) -> Optional[User]:
-        user = DEMO_USERS.get(email.lower().strip())
+        clean = email.lower().strip()
+        user = DEMO_USERS.get(clean)
         if user:
             return user
         
+        # Check against the 40 employees dataset
+        emp = get_employee_by_email_or_name(clean)
+        if emp:
+            return User(
+                id=emp["id"],
+                email=emp["email"],
+                name=emp["name"],
+                role=role or emp.get("role", "employee"),
+                title=emp["designation"],
+                avatar_color=emp["avatar_color"]
+            )
+        
         role_to_assign: UserRole = role or "employee"
-        name = email.split("@")[0].replace(".", " ").title()
+        name = clean.split("@")[0].replace(".", " ").title()
         return User(
             id=f"usr_{uuid.uuid4().hex[:8]}",
             email=email,
@@ -475,39 +467,82 @@ class SupabaseStorage:
         )
 
     def get_employee_user(self, emp_num: int, email: Optional[str] = None) -> User:
-        profile = get_employee_profile(emp_num)
-        avatar_colors = ["bg-emerald-600", "bg-indigo-600", "bg-teal-600", "bg-cyan-600", "bg-sky-600", "bg-pink-600", "bg-purple-600"]
-        color = avatar_colors[emp_num % len(avatar_colors)]
+        emp = get_employee_by_num(emp_num)
+        if not emp:
+            emp = get_employee_by_id(f"emp_{emp_num:02d}")
+            
+        if emp:
+            return User(
+                id=emp["id"],
+                email=email if email else emp["email"],
+                name=emp["name"],
+                role=emp.get("role", "employee"),
+                title=emp["designation"],
+                avatar_color=emp["avatar_color"]
+            )
+            
+        # Fallback default
         return User(
             id=f"emp_{emp_num:02d}",
             email=email if email else f"emp_{emp_num:02d}@company.ai",
-            name=profile["name"],
+            name=f"Employee {emp_num}",
             role="employee",
-            title=profile["designation"],
-            avatar_color=color
+            title="Software Developer",
+            avatar_color="bg-indigo-600"
         )
 
     def get_assigned_project_for_employee(self, emp_num: int) -> Optional[Project]:
+        emp = get_employee_by_num(emp_num)
+        emp_id = emp["id"] if emp else f"emp_{emp_num:02d}"
+        emp_name = emp["name"] if emp else f"Employee {emp_num}"
+
+        # Check if employee has direct assigned tasks
+        if self.client:
+            try:
+                task_res = self.client.table("tasks").select("project_id").or_(f"assigned_emp_id.eq.{emp_id},assigned_to.ilike.%{emp_name}%").limit(1).execute()
+                if task_res.data and len(task_res.data) > 0:
+                    matched_proj_id = task_res.data[0].get("project_id")
+                    if matched_proj_id:
+                        proj = self.get_project(matched_proj_id)
+                        if proj:
+                            return proj
+            except Exception as e:
+                print(f"[SupabaseStorage] get_assigned_project_for_employee query notice: {e}")
+
         projects = self.list_projects()
         if not projects:
             return None
-        proj_idx = emp_num % len(projects)
-        return projects[proj_idx]
+        # Return first active project or fallback
+        active_projects = [p for p in projects if p.status in ("Active", "Pending Lead Review", "Planning")]
+        if active_projects:
+            return active_projects[(emp_num - 1) % len(active_projects)]
+        return projects[(emp_num - 1) % len(projects)]
+
 
     # ================= TASKS =================
-    def list_tasks(self, project_id: Optional[str] = None, assigned_to: Optional[str] = None, status: Optional[str] = None) -> List[TaskItem]:
+    def list_tasks(
+        self, 
+        project_id: Optional[str] = None, 
+        assigned_to: Optional[str] = None, 
+        assigned_emp_id: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> List[TaskItem]:
         if not self.client:
             return []
         try:
             query = self.client.table("tasks").select("*")
             if project_id:
                 query = query.eq("project_id", project_id)
-            if assigned_to:
+            if assigned_emp_id and assigned_to:
+                query = query.or_(f"assigned_emp_id.eq.{assigned_emp_id},assigned_to.ilike.%{assigned_to}%")
+            elif assigned_emp_id:
+                query = query.eq("assigned_emp_id", assigned_emp_id)
+            elif assigned_to:
                 query = query.ilike("assigned_to", f"%{assigned_to}%")
             if status and status != "ALL":
                 query = query.eq("status", status)
 
-            res = query.order("created_at", desc=True).execute()
+            res = query.order("due_day", desc=False).order("created_at", desc=True).execute()
             if not res.data:
                 return []
             return [TaskItem(**t) for t in res.data if isinstance(t, dict)]

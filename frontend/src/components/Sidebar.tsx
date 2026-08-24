@@ -148,7 +148,7 @@ export default function Sidebar() {
     {
       role: "manager",
       title: "Manager",
-      name: "Alexander Vance",
+      name: "Arjun Reddy",
       path: "/",
       icon: Briefcase,
       color: "bg-indigo-600",
@@ -156,7 +156,7 @@ export default function Sidebar() {
     {
       role: "project_lead",
       title: "Project Lead",
-      name: "Elena Rostova",
+      name: "Ishita Rao",
       path: "/lead",
       icon: Layers,
       color: "bg-purple-600",
@@ -164,7 +164,7 @@ export default function Sidebar() {
     {
       role: "employee",
       title: "Employee",
-      name: "Emma Watson",
+      name: "Rahul Kumar",
       path: "/employee",
       icon: Users,
       color: "bg-emerald-600",

@@ -1,8 +1,11 @@
 from typing import List, Optional, Dict, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # User & Auth Models
 UserRole = Literal["manager", "project_lead", "employee"]
+RiskLevel = Literal["Low", "Medium", "High"]
+RiskSeverity = Literal["Low", "Medium", "High", "Critical"]
+FeasibilityStatus = Literal["Feasible", "Feasible with Changes", "Not Feasible"]
 
 class User(BaseModel):
     id: str
@@ -34,7 +37,10 @@ class TaskItem(BaseModel):
     title: str
     description: str
     assigned_role: str
-    assigned_to: str
+    assigned_to: str = "Unassigned"
+    assigned_emp_id: Optional[str] = None
+    match_score: Optional[int] = None
+    ai_rationale: Optional[str] = None
     status: TaskStatus = "To Do"
     priority: TaskPriority = "Medium"
     due_day: int = 10
@@ -72,7 +78,7 @@ class PhaseTimeline(BaseModel):
     end_day: int
     duration_days: int
     description: str
-    key_deliverables: List[str] = []
+    key_deliverables: List[str]
     dependencies: List[str] = []
 
 class TimelineBreakdown(BaseModel):
@@ -89,30 +95,41 @@ class TechRecommendation(BaseModel):
 
 class RiskItem(BaseModel):
     risk: str
-    probability: Literal["High", "Medium", "Low"]
-    impact: Literal["High", "Medium", "Low"]
-    severity: Literal["Critical", "High", "Medium", "Low"]
+    probability: RiskLevel
+    impact: RiskLevel
+    severity: RiskSeverity
     reason: str
     mitigation: str
 
 class FeasibilityDimension(BaseModel):
-    scope_score: int # 0-100
-    timeline_score: int # 0-100
-    manpower_score: int # 0-100
-    technical_risk_score: int # 0-100 (higher means less risk / healthier)
-    complexity_score: int # 0-100
+    scope_score: int = Field(..., ge=0, le=100)
+    timeline_score: int = Field(..., ge=0, le=100)
+    manpower_score: int = Field(..., ge=0, le=100)
+    technical_risk_score: int = Field(..., ge=0, le=100)
+    complexity_score: int = Field(..., ge=0, le=100)
 
 class FeasibilityAnalysis(BaseModel):
-    status: Literal["FEASIBLE", "FEASIBLE WITH CHANGES", "NOT FEASIBLE"]
-    feasibility_score: int # 0-100
+    status: FeasibilityStatus
+    feasibility_score: int = Field(..., ge=0, le=100)
     dimensions: FeasibilityDimension
     key_verdict: str
 
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, v: str) -> str:
+        """Normalize AI-returned uppercase status strings to title-case literals."""
+        mapping = {
+            "FEASIBLE WITH CHANGES": "Feasible with Changes",
+            "FEASIBLE": "Feasible",
+            "NOT FEASIBLE": "Not Feasible",
+        }
+        return mapping.get(str(v).strip().upper(), v)
+
 class SuggestedAdjustments(BaseModel):
-    recommended_additional_employees: int = 0
-    recommended_timeline_extension_days: int = 0
-    optional_features_to_drop: List[str] = []
-    critical_skills_needed: List[str] = []
+    recommended_additional_employees: int
+    recommended_timeline_extension_days: int
+    optional_features_to_drop: List[str]
+    critical_skills_needed: List[str]
 
 class AIRecommendation(BaseModel):
     primary_advice: str
@@ -147,6 +164,8 @@ class ProjectCreate(BaseModel):
     available_employees: int = Field(..., gt=0, le=200)
     requirements: str = Field(..., min_length=10)
 
+LeadDecisionStatus = Literal["Pending Review", "Accepted", "Rejected", "None"]
+
 class Project(BaseModel):
     id: str
     name: str
@@ -154,13 +173,32 @@ class Project(BaseModel):
     expected_days: int
     available_employees: int
     requirements: str
-    status: Literal["Active", "Completed", "At-Risk", "Planning"] = "Active"
+    status: Literal["Active", "Completed", "At-Risk", "Planning", "Pending Lead Review", "Rejected by Lead"] = "Active"
     sent_to_lead: bool = False
-    lead_assigned: Optional[str] = "Elena Rostova"
+    lead_assigned: Optional[str] = "Ishita Rao"
     sent_to_lead_at: Optional[str] = None
+    lead_status: LeadDecisionStatus = "None"
+    rejection_reason: Optional[str] = None
+    lead_accepted_at: Optional[str] = None
+    lead_rejected_at: Optional[str] = None
+    ai_work_allocated: bool = False
     created_at: str
     updated_at: str
     analysis: AIAnalysisResult
+
+class LeadActionPayload(BaseModel):
+    action: Literal["accept", "reject"]
+    rejection_reason: Optional[str] = None
+
+class AITaskAllocationResponse(BaseModel):
+    project_id: str
+    project_name: str
+    tasks: List[TaskItem]
+    summary: str
+
+class ConfirmTaskAllocationPayload(BaseModel):
+    project_id: str
+    tasks: List[TaskItem]
 
 class SimulationRequest(BaseModel):
     project_id: Optional[str] = None
@@ -215,4 +253,22 @@ class MeetingItem(BaseModel):
     location_or_link: str
     agenda: str
     created_at: str
+
+class EmployeeModel(BaseModel):
+    id: str
+    serial_no: int
+    name: str
+    email: str
+    designation: str
+    role: UserRole = "employee"
+    skills: List[str]
+    experience: str
+    experience_years: float = 3.0
+    workload: int = 50
+    availability_status: str = "Available"
+    availability: str = "Available (50% bandwidth)"
+    prev_projects: List[str] = []
+    avatar_color: str = "bg-indigo-600"
+    password: Optional[str] = None
+
 

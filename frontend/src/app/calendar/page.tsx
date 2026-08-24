@@ -83,9 +83,9 @@ const MEETING_TYPE_STYLES: Record<
 };
 
 const DEFAULT_ATTENDEE_PRESETS = [
-  "Alexander Vance",
-  "Elena Rostova",
-  "Devon Chen",
+  "Arjun Reddy",
+  "Ishita Rao",
+  "Rahul Kumar",
   "Marcus Brody",
   "Sarah Lin",
 ];
@@ -122,7 +122,7 @@ function CalendarPageContent() {
   const [formEndTime, setFormEndTime] = useState<string>("11:30 AM");
   const [formDuration, setFormDuration] = useState<number>(60);
   const [formType, setFormType] = useState<MeetingType>("Sprint Planning");
-  const [formAttendees, setFormAttendees] = useState<string[]>(["Alexander Vance", "Elena Rostova"]);
+  const [formAttendees, setFormAttendees] = useState<string[]>(["Arjun Reddy", "Ishita Rao"]);
   const [customAttendee, setCustomAttendee] = useState("");
   const [formLocation, setFormLocation] = useState("Google Meet (meet.google.com/kuiper-sync)");
   const [formAgenda, setFormAgenda] = useState("");
@@ -338,7 +338,7 @@ function CalendarPageContent() {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500">
-              Welcome, <strong className="text-slate-800">{user?.name || "Alexander Vance"}</strong> • Coordinate sprint syncs, client briefings, and architecture reviews.
+              Welcome, <strong className="text-slate-800">{user?.name || "Arjun Reddy"}</strong> • Coordinate sprint syncs, client briefings, and architecture reviews.
             </p>
           </div>
 

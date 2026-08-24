@@ -14,8 +14,9 @@ from models.schemas import (
     MustNeedRequirement, RoleRequirement, EmployeeAnalysis,
     PhaseTimeline, TimelineBreakdown, TechRecommendation,
     RiskItem, FeasibilityDimension, FeasibilityAnalysis,
-    SuggestedAdjustments, AIRecommendation
+    SuggestedAdjustments, AIRecommendation, TaskItem
 )
+
 
 class AIProjectAnalyzer:
     def __init__(self):
@@ -1030,4 +1031,175 @@ Return ONLY a valid JSON object with the following exact keys and structure:
             "ai_recommendation": base_analysis.ai_recommendation
         }
 
+    def allocate_tasks_to_employees(
+        self,
+        project_id: str,
+        project_name: str,
+        project_description: str,
+        phases: List[Any],
+        employees: List[Dict[str, Any]]
+    ) -> List[TaskItem]:
+        """
+        AI Intelligent Work Allocator:
+        Evaluates all 40 employees from EMPLOYEE_ID.xlsx against each phase deliverable based on:
+        1. Skill Match & Role Alignment (40%)
+        2. Workload & Headroom Bandwidth (30%)
+        3. Experience & Previous Project Relevance (20%)
+        4. Real-time Availability Status (10%)
+        """
+        allocated_tasks: List[TaskItem] = []
+        # Track virtual workload dynamically so tasks are distributed across the best team members
+        dynamic_workloads = {e["id"]: e.get("workload", 50) for e in employees}
+
+        # Role to keywords mapping
+        phase_role_keywords = {
+            "planning": ["requirements", "architecture", "agile", "scrum", "project management", "documentation", "uml"],
+            "design": ["ui", "ux", "figma", "prototyping", "wireframing", "adobe", "user research"],
+            "ui/ux": ["ui", "ux", "figma", "prototyping", "wireframing", "adobe", "user research"],
+            "frontend": ["react", "next.js", "typescript", "javascript", "html", "css", "tailwind", "redux"],
+            "backend": ["python", "fastapi", "rest api", "postgresql", "sql", "api", "database", "redis", "mongodb", "node.js", "express"],
+            "ai": ["python", "pytorch", "tensorflow", "machine learning", "llm", "nlp", "hugging face", "gemini", "data"],
+            "ml": ["python", "pytorch", "tensorflow", "machine learning", "llm", "nlp", "hugging face", "gemini", "data"],
+            "qa": ["testing", "test", "selenium", "jest", "cypress", "automation", "api testing", "postman", "qa"],
+            "testing": ["testing", "test", "selenium", "jest", "cypress", "automation", "api testing", "postman", "qa"],
+            "devops": ["docker", "kubernetes", "aws", "ci/cd", "terraform", "github actions", "linux", "cloud"],
+            "deployment": ["docker", "kubernetes", "aws", "ci/cd", "terraform", "github actions", "linux", "cloud"],
+            "security": ["cybersecurity", "auth", "oauth", "jwt", "encryption", "firewall", "compliance"]
+        }
+
+        task_counter = 1
+        for p in phases:
+            p_name = getattr(p, "phase_name", "") if hasattr(p, "phase_name") else p.get("phase_name", "")
+            p_end_day = getattr(p, "end_day", 10) if hasattr(p, "end_day") else p.get("end_day", 10)
+            deliverables = getattr(p, "key_deliverables", []) if hasattr(p, "key_deliverables") else p.get("key_deliverables", [])
+            
+            p_name_lower = p_name.lower()
+
+            for deliv in deliverables:
+                deliv_lower = deliv.lower()
+                
+                # Determine target keywords for this deliverable
+                target_keywords = set()
+                for key, kws in phase_role_keywords.items():
+                    if key in p_name_lower or key in deliv_lower:
+                        target_keywords.update(kws)
+                if not target_keywords:
+                    target_keywords.update(["python", "javascript", "react", "api", "testing", "development"])
+
+                # Score all 40 employees
+                candidate_scores = []
+                for emp in employees:
+                    emp_id = emp["id"]
+                    emp_name = emp["name"]
+                    emp_desig = emp.get("designation", "").lower()
+                    emp_skills = [s.lower() for s in emp.get("skills", [])]
+                    emp_workload = dynamic_workloads.get(emp_id, emp.get("workload", 50))
+                    emp_exp = emp.get("experience_years", 3.0)
+                    emp_avail = emp.get("availability_status", "Available")
+                    emp_prev = [proj.lower() for proj in emp.get("prev_projects", [])]
+
+                    # 1. Skill Match Score (0 - 40 pts)
+                    skill_score = 0
+                    # Designation alignment (up to 20 pts)
+                    if any(k in emp_desig for k in ["frontend", "ui/ux", "designer"]) and any(k in p_name_lower for k in ["frontend", "ui", "design"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["backend", "database", "full stack"]) and any(k in p_name_lower for k in ["backend", "database", "api"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["ai", "machine learning", "data"]) and any(k in p_name_lower for k in ["ai", "ml", "data", "model"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["devops", "cloud", "reliability", "infrastructure"]) and any(k in p_name_lower for k in ["devops", "cloud", "deployment", "infrastructure"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["qa", "testing"]) and any(k in p_name_lower for k in ["qa", "testing", "test"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["project manager", "architect", "analyst", "product"]) and any(k in p_name_lower for k in ["planning", "architecture", "scope"]):
+                        skill_score += 20
+                    elif "full stack" in emp_desig:
+                        skill_score += 15
+                    else:
+                        skill_score += 5
+
+                    # Specific skill keyword matches (up to 20 pts)
+                    matched_skills = [s for s in emp_skills if any(kw in s or s in kw for kw in target_keywords)]
+                    skill_score += min(20, len(matched_skills) * 7)
+
+                    # 2. Workload & Headroom Bandwidth Score (0 - 30 pts)
+                    headroom = max(0, 100 - emp_workload)
+                    workload_score = (headroom / 100.0) * 30.0
+                    if emp_workload > 90:
+                        workload_score -= 10
+
+                    # 3. Experience & Previous Project Relevance (0 - 20 pts)
+                    exp_score = min(10.0, float(emp_exp) * 1.5)
+                    proj_match_score = 0
+                    matched_prev_proj = None
+                    proj_words = (project_name + " " + project_description + " " + deliv).lower().split()
+                    for p_proj in emp_prev:
+                        for pw in proj_words:
+                            if len(pw) > 3 and pw in p_proj:
+                                proj_match_score = 10.0
+                                matched_prev_proj = p_proj
+                                break
+                        if proj_match_score > 0:
+                            break
+                    exp_proj_score = min(20.0, exp_score + proj_match_score)
+
+                    # 4. Availability Status Score (0 - 10 pts)
+                    if emp_avail == "Available":
+                        avail_score = 10.0
+                    elif emp_avail == "Partial":
+                        avail_score = 6.0
+                    else:
+                        avail_score = 1.0
+
+                    total_score = min(99, max(52, int(skill_score + workload_score + exp_proj_score + avail_score)))
+
+                    candidate_scores.append({
+                        "emp": emp,
+                        "score": total_score,
+                        "matched_skills": matched_skills,
+                        "matched_proj": matched_prev_proj,
+                        "headroom": headroom,
+                        "workload": emp_workload
+                    })
+
+                # Sort by score descending
+                candidate_scores.sort(key=lambda x: x["score"], reverse=True)
+                best = candidate_scores[0]
+                best_emp = best["emp"]
+                best_score = best["score"]
+
+                # Build rich, explanatory AI rationale
+                skill_highlight = ", ".join(best["matched_skills"][:2]) if best["matched_skills"] else best_emp["skills"][0]
+                proj_clause = f", past project '{best['matched_proj'].title()}'" if best["matched_proj"] else f", {best_emp['experience']} experience"
+                rationale = (
+                    f"Match Score {best_score}%: Direct competence in {skill_highlight}, "
+                    f"{best['headroom']}% bandwidth headroom ({best['workload']}% current workload)"
+                    f"{proj_clause}, status: {best_emp.get('availability_status', 'Available')}."
+                )
+
+                # Increment dynamic workload to avoid overloading one employee
+                dynamic_workloads[best_emp["id"]] = min(100, dynamic_workloads.get(best_emp["id"], 50) + 12)
+
+                task_item = TaskItem(
+                    id=f"task_{project_id[:6]}_{task_counter:02d}",
+                    project_id=project_id,
+                    project_name=project_name,
+                    phase_name=p_name,
+                    title=deliv,
+                    description=f"Sprint Deliverable for {p_name}: {deliv}",
+                    assigned_role=best_emp["designation"],
+                    assigned_to=best_emp["name"],
+                    assigned_emp_id=best_emp["id"],
+                    match_score=best_score,
+                    ai_rationale=rationale,
+                    status="To Do",
+                    priority="High" if any(k in p_name_lower for k in ["planning", "architecture", "security", "core"]) else "Medium",
+                    due_day=p_end_day
+                )
+                allocated_tasks.append(task_item)
+                task_counter += 1
+
+        return allocated_tasks
+
 analyzer_instance = AIProjectAnalyzer()
+

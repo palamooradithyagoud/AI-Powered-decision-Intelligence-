@@ -10,20 +10,30 @@ export interface User {
 }
 
 export interface EmployeeProfile {
+  id: string;
+  serial_no?: number;
   name: string;
+  email?: string;
   designation: string;
+  role?: UserRole;
   skills: string[];
   experience: string;
+  experience_years?: number;
   workload: number;
+  availability_status?: string;
   availability: string;
   prev_projects: string[];
+  avatar_color?: string;
+  password?: string;
 }
+
 
 export interface LoginResponse {
   user: User;
   token: string;
   message: string;
 }
+
 
 export type TaskStatus = "To Do" | "In Progress" | "Completed";
 export type TaskPriority = "High" | "Medium" | "Low";
@@ -37,6 +47,9 @@ export interface TaskItem {
   description: string;
   assigned_role: string;
   assigned_to: string;
+  assigned_emp_id?: string;
+  match_score?: number;
+  ai_rationale?: string;
   status: TaskStatus;
   priority: TaskPriority;
   due_day: number;
@@ -45,7 +58,8 @@ export interface TaskItem {
 export type FeasibilityStatus = "FEASIBLE" | "FEASIBLE WITH CHANGES" | "NOT FEASIBLE";
 export type RiskSeverity = "Critical" | "High" | "Medium" | "Low";
 export type RiskLevel = "High" | "Medium" | "Low";
-export type ProjectStatus = "Active" | "Completed" | "At-Risk" | "Planning";
+export type ProjectStatus = "Active" | "Completed" | "At-Risk" | "Planning" | "Pending Lead Review" | "Rejected by Lead";
+export type LeadDecisionStatus = "Pending Review" | "Accepted" | "Rejected" | "None";
 export type EmployeeStatus = "Sufficient" | "Employee Shortage" | "Resource Overload";
 
 export interface FeatureItem {
@@ -172,9 +186,31 @@ export interface Project {
   sent_to_lead?: boolean;
   lead_assigned?: string;
   sent_to_lead_at?: string;
+  lead_status?: LeadDecisionStatus;
+  rejection_reason?: string;
+  lead_accepted_at?: string;
+  lead_rejected_at?: string;
+  ai_work_allocated?: boolean;
   created_at: string;
   updated_at: string;
   analysis: AIAnalysisResult;
+}
+
+export interface LeadActionPayload {
+  action: "accept" | "reject";
+  rejection_reason?: string;
+}
+
+export interface AITaskAllocationResponse {
+  project_id: string;
+  project_name: string;
+  tasks: TaskItem[];
+  summary: string;
+}
+
+export interface ConfirmTaskAllocationPayload {
+  project_id: string;
+  tasks: TaskItem[];
 }
 
 export interface ProjectCreateInput {

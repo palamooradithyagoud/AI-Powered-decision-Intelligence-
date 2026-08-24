@@ -54,6 +54,17 @@ export function getFeasibilityColor(status: FeasibilityStatus) {
         label: "NOT FEASIBLE",
         icon: "🔴",
       };
+    default:
+      return {
+        bg: "bg-slate-500/10 dark:bg-slate-800/40",
+        border: "border-slate-500/30 dark:border-slate-500/40",
+        text: "text-slate-700 dark:text-slate-400",
+        badge: "bg-slate-500 text-white",
+        dot: "bg-slate-400",
+        accent: "#64748b",
+        label: String(status) || "UNKNOWN",
+        icon: "⚪",
+      };
   }
 }
 
