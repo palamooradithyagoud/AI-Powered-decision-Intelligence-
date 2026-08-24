@@ -19,7 +19,8 @@ import {
   AlertCircle, 
   ArrowRight,
   BookOpen,
-  Bell
+  Bell,
+  Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -157,14 +158,14 @@ function EmployeeDashboardContent() {
     );
   }
 
-  if (error || !profile || !project) {
+  if (error || !profile) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-6 text-center space-y-4 shadow-md">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
           <h2 className="text-xl font-bold text-slate-900">Workspace Unavailable</h2>
           <p className="text-sm text-slate-500">
-            {error || "Could not retrieve employee details or project assignments."}
+            {error || "Could not retrieve employee details."}
           </p>
           <button 
             onClick={loadDashboardData}
@@ -213,17 +214,23 @@ function EmployeeDashboardContent() {
                 <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between space-y-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Assigned Project</span>
-                    <h3 className="text-base font-bold text-slate-900 leading-tight">{project.name}</h3>
+                    <h3 className="text-base font-bold text-slate-900 leading-tight">
+                      {project?.name || "No Active Project"}
+                    </h3>
                   </div>
-                  <button 
-                    onClick={() => {
-                      router.push("/employee?tab=project");
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold text-[#6366f1] hover:text-[#4f46e5] transition-colors w-max"
-                  >
-                    <span>View Specifications</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  {project ? (
+                    <button 
+                      onClick={() => {
+                        router.push("/employee?tab=project");
+                      }}
+                      className="flex items-center gap-1 text-xs font-bold text-[#6366f1] hover:text-[#4f46e5] transition-colors w-max"
+                    >
+                      <span>View Specifications</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400">Awaiting project assignment</span>
+                  )}
                 </div>
 
                 {/* Timeline Card */}
@@ -231,13 +238,13 @@ function EmployeeDashboardContent() {
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Project Deadline</span>
                     <div className="flex items-baseline gap-1.5 mt-1">
-                      <span className="text-3xl font-black text-slate-900">{project.expected_days}</span>
+                      <span className="text-3xl font-black text-slate-900">{project?.expected_days || 0}</span>
                       <span className="text-sm font-semibold text-slate-500">Days</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
                     <Clock className="h-4 w-4 text-orange-500" />
-                    <span>Estimated delivery day buffer included</span>
+                    <span>{project ? "Estimated delivery day buffer included" : "No active sprint deadline"}</span>
                   </div>
                 </div>
 
@@ -377,210 +384,230 @@ function EmployeeDashboardContent() {
 
           {/* TAB 2: ASSIGNED PROJECT SPECIFICATIONS */}
           {activeTab === "project" && (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
-              <div className="border-b border-slate-100 pb-4">
-                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Assigned Project Specifications</h1>
-                <p className="text-xs text-slate-550 mt-1">Review the complete parameters and scope of your active workspace assignment.</p>
-              </div>
-
-              {/* Title & Priority Badge */}
-              <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 border border-slate-200/80 p-4 rounded-xl">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-extrabold text-[#6366f1] uppercase tracking-widest block">Project Identifier: {project.id.slice(0, 8)}</span>
-                  <h2 className="text-lg font-bold text-slate-900 leading-tight">{project.name}</h2>
+            project ? (
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-4">
+                  <h1 className="text-xl md:text-2xl font-bold text-slate-900">Assigned Project Specifications</h1>
+                  <p className="text-xs text-slate-550 mt-1">Review the complete parameters and scope of your active workspace assignment.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500">Priority:</span>
-                  <span className="rounded-full bg-red-50 text-red-750 border border-red-200 px-3 py-0.5 text-xs font-bold">
-                    High Priority
-                  </span>
+
+                {/* Title & Priority Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 border border-slate-200/80 p-4 rounded-xl">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold text-[#6366f1] uppercase tracking-widest block">Project Identifier: {project.id.slice(0, 8)}</span>
+                    <h2 className="text-lg font-bold text-slate-900 leading-tight">{project.name}</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">Priority:</span>
+                    <span className="rounded-full bg-red-50 text-red-750 border border-red-200 px-3 py-0.5 text-xs font-bold">
+                      High Priority
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider text-[11px]">Description & Goal</h3>
-                <p className="text-sm text-slate-655 leading-relaxed bg-slate-50/50 p-4 rounded-xl border border-slate-200">
-                  {project.description}
-                </p>
-              </div>
+                {/* Description */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider text-[11px]">Description & Goal</h3>
+                  <p className="text-sm text-slate-655 leading-relaxed bg-slate-50/50 p-4 rounded-xl border border-slate-200">
+                    {project.description}
+                  </p>
+                </div>
 
-              {/* Roles and Timelines Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Execution Information</h3>
-                  <div className="divide-y divide-slate-200 text-xs">
-                    <div className="py-2.5 flex items-center justify-between">
-                      <span className="text-slate-500">Your Assigned Role</span>
-                      <strong className="text-slate-800">{profile.designation}</strong>
+                {/* Roles and Timelines Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Execution Information</h3>
+                    <div className="divide-y divide-slate-200 text-xs">
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-500">Your Assigned Role</span>
+                        <strong className="text-slate-800">{profile.designation}</strong>
+                      </div>
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-500">Allocated Timeline</span>
+                        <strong className="text-slate-800">{project.expected_days} Days</strong>
+                      </div>
+                      <div className="py-2.5 flex items-center justify-between">
+                        <span className="text-slate-555">Baseline Team Capacity</span>
+                        <strong className="text-slate-800">{project.available_employees} Engineers</strong>
+                      </div>
                     </div>
-                    <div className="py-2.5 flex items-center justify-between">
-                      <span className="text-slate-500">Allocated Timeline</span>
-                      <strong className="text-slate-800">{project.expected_days} Days</strong>
-                    </div>
-                    <div className="py-2.5 flex items-center justify-between">
-                      <span className="text-slate-555">Baseline Team Capacity</span>
-                      <strong className="text-slate-800">{project.available_employees} Engineers</strong>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Required Stack & Competencies</h3>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {profile.skills.map((skill: string) => (
+                        <span key={skill} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800 border border-slate-200">
+                          {skill}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Required Stack & Competencies</h3>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {profile.skills.map((skill: string) => (
-                      <span key={skill} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800 border border-slate-200">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phases of timeline */}
-              {project.analysis?.timeline_breakdown?.phases && (
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider text-[11px]">Sprint Timeline & Deliverables Breakdown</h3>
-                  <div className="space-y-3">
-                    {project.analysis.timeline_breakdown.phases.map((p: any) => (
-                      <div key={p.phase_name} className="border border-slate-200 bg-slate-50/50 rounded-xl p-4 space-y-2.5 hover:bg-slate-105/40 transition-colors">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                          <h4 className="font-bold text-slate-800 text-xs sm:text-sm">{p.phase_name}</h4>
-                          <span className="text-xs font-bold text-[#6366f1] bg-indigo-50 border border-indigo-100 rounded-md px-2 py-0.5">
-                            Day {p.start_day} - Day {p.end_day} ({p.duration_days} days)
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500">{p.description}</p>
-                        <div className="space-y-1.5 pt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase block">Deliverables:</span>
-                          <div className="flex flex-wrap gap-2">
-                            {p.key_deliverables?.map((deliv: string) => (
-                              <span key={deliv} className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2.5 py-1 text-xs text-slate-600 shadow-sm">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" />
-                                <span>{deliv}</span>
-                              </span>
-                            ))}
+                {/* Phases of timeline */}
+                {project.analysis?.timeline_breakdown?.phases && (
+                  <div className="space-y-3 pt-2">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider text-[11px]">Sprint Timeline & Deliverables Breakdown</h3>
+                    <div className="space-y-3">
+                      {project.analysis.timeline_breakdown.phases.map((p: any) => (
+                        <div key={p.phase_name} className="border border-slate-200 bg-slate-50/50 rounded-xl p-4 space-y-2.5 hover:bg-slate-105/40 transition-colors">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <h4 className="font-bold text-slate-800 text-xs sm:text-sm">{p.phase_name}</h4>
+                            <span className="text-xs font-bold text-[#6366f1] bg-indigo-50 border border-indigo-100 rounded-md px-2 py-0.5">
+                              Day {p.start_day} - Day {p.end_day} ({p.duration_days} days)
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">{p.description}</p>
+                          <div className="space-y-1.5 pt-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block">Deliverables:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {p.key_deliverables?.map((deliv: string) => (
+                                <span key={deliv} className="inline-flex items-center gap-1 rounded-md bg-white border border-slate-200 px-2.5 py-1 text-xs text-slate-600 shadow-sm">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" />
+                                  <span>{deliv}</span>
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-12 shadow-sm text-center space-y-4">
+                <Briefcase className="h-12 w-12 text-[#6366f1] mx-auto opacity-70" />
+                <h2 className="text-xl font-bold text-slate-900">No Project Assigned Yet</h2>
+                <p className="text-sm text-slate-500 max-w-md mx-auto">
+                  You are currently on standby with {profile.availability}. Once a project blueprint is created and assigned to you, its scope, technical stack, and deliverables will appear here.
+                </p>
+              </div>
+            )
           )}
 
           {/* TAB 3: PROJECT PROGRESS (5-STAGE KANBAN BOARD) */}
           {activeTab === "progress" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h1 className="text-xl md:text-2xl font-bold text-slate-900">Sprint Kanban Workflow</h1>
-                  <p className="text-xs text-slate-500">Track and update the status of the 5 project execution stages in real-time.</p>
-                </div>
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 flex items-center gap-3 shrink-0">
-                  <div className="space-y-0.5">
-                    <span className="text-[9px] font-bold text-[#6366f1] uppercase tracking-widest block">Overall Progress</span>
-                    <strong className="text-base font-extrabold text-[#6366f1]">{progressPercent}% Completed</strong>
+            project ? (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-900">Sprint Kanban Workflow</h1>
+                    <p className="text-xs text-slate-500">Track and update the status of the 5 project execution stages in real-time.</p>
                   </div>
-                  <div className="h-8 w-px bg-slate-200" />
-                  <span className="text-xs font-bold text-slate-500">{completedStagesCount} / 5 Stages Done</span>
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 flex items-center gap-3 shrink-0">
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] font-bold text-[#6366f1] uppercase tracking-widest block">Overall Progress</span>
+                      <strong className="text-base font-extrabold text-[#6366f1]">{progressPercent}% Completed</strong>
+                    </div>
+                    <div className="h-8 w-px bg-slate-200" />
+                    <span className="text-xs font-bold text-slate-500">{completedStagesCount} / 5 Stages Done</span>
+                  </div>
+                </div>
+
+                {/* Kanban Columns Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                  {STATUS_OPTIONS.map(colStatus => {
+                    // Filter stages with this status
+                    const stagesInCol = STAGES_ORDER.filter(s => (stages[s] || "To Do") === colStatus);
+                    
+                    return (
+                      <div 
+                        key={colStatus} 
+                        className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 min-h-[450px] flex flex-col"
+                      >
+                        {/* Column Header */}
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className={cn(
+                            "text-xs font-bold uppercase tracking-wider rounded-md px-2 py-0.5 border",
+                            colStatus === "Completed" 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-250" 
+                              : colStatus === "Review"
+                              ? "bg-orange-50 text-orange-700 border-orange-250"
+                              : colStatus === "In Progress"
+                              ? "bg-indigo-50 text-[#6366f1] border-indigo-200"
+                              : "bg-slate-100 text-slate-500 border border-slate-200"
+                          )}>
+                            {colStatus}
+                          </span>
+                          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
+                            {stagesInCol.length}
+                          </span>
+                        </div>
+
+                        {/* Column Content - Cards */}
+                        <div className="space-y-3 flex-1 flex flex-col justify-start">
+                          {stagesInCol.map((s) => (
+                            <div 
+                              key={s} 
+                              className="bg-white border border-slate-200 p-4 space-y-3.5 rounded-2xl shadow-sm hover:border-slate-300 transition-all group"
+                            >
+                              <div className="space-y-1">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Stage</span>
+                                <h4 className="font-bold text-slate-900 text-sm leading-tight">{s}</h4>
+                                <p className="text-xs text-slate-500 leading-normal line-clamp-3">
+                                  {STAGE_DESCRIPTIONS[s]}
+                                </p>
+                              </div>
+
+                              {/* Dropdown status update controls */}
+                              <div className="space-y-2 pt-2 border-t border-slate-100">
+                                <div className="flex items-center justify-between gap-1">
+                                  <label className="text-[10px] font-bold text-slate-400 uppercase">Change Status:</label>
+                                  <select 
+                                    value={colStatus}
+                                    onChange={(e) => handleStageStatusChange(s, e.target.value)}
+                                    className="text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-md py-1 px-1.5 focus:outline-none focus:ring-1 focus:ring-[#6366f1] cursor-pointer"
+                                  >
+                                    {STATUS_OPTIONS.map(opt => (
+                                      <option key={opt} value={opt} className="bg-white text-slate-800">{opt}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {/* Manual Arrow Shift Controls */}
+                                <div className="grid grid-cols-2 gap-1.5 pt-1">
+                                  <button
+                                    disabled={colStatus === "To Do"}
+                                    onClick={() => moveStage(s, "left")}
+                                    className="flex items-center justify-center gap-1 rounded-md border border-slate-200 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                  >
+                                    <span>← Move Back</span>
+                                  </button>
+                                  <button
+                                    disabled={colStatus === "Completed"}
+                                    onClick={() => moveStage(s, "right")}
+                                    className="flex items-center justify-center gap-1 rounded-md border border-slate-200 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                  >
+                                    <span>Advance →</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {stagesInCol.length === 0 && (
+                            <div className="border border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-center text-slate-500 flex-1 min-h-[150px]">
+                              <span className="text-xs font-bold">No Stages</span>
+                              <span className="text-[10px] block mt-0.5">Change stage status to place cards here.</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Kanban Columns Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                {STATUS_OPTIONS.map(colStatus => {
-                  // Filter stages with this status
-                  const stagesInCol = STAGES_ORDER.filter(s => (stages[s] || "To Do") === colStatus);
-                  
-                  return (
-                    <div 
-                      key={colStatus} 
-                      className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 min-h-[450px] flex flex-col"
-                    >
-                      {/* Column Header */}
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <span className={cn(
-                          "text-xs font-bold uppercase tracking-wider rounded-md px-2 py-0.5 border",
-                          colStatus === "Completed" 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-250" 
-                            : colStatus === "Review"
-                            ? "bg-orange-50 text-orange-700 border-orange-250"
-                            : colStatus === "In Progress"
-                            ? "bg-indigo-50 text-[#6366f1] border-indigo-200"
-                            : "bg-slate-100 text-slate-500 border border-slate-200"
-                        )}>
-                          {colStatus}
-                        </span>
-                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
-                          {stagesInCol.length}
-                        </span>
-                      </div>
-
-                      {/* Column Content - Cards */}
-                      <div className="space-y-3 flex-1 flex flex-col justify-start">
-                        {stagesInCol.map((s) => (
-                          <div 
-                            key={s} 
-                            className="bg-white border border-slate-200 p-4 space-y-3.5 rounded-2xl shadow-sm hover:border-slate-300 transition-all group"
-                          >
-                            <div className="space-y-1">
-                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Stage</span>
-                              <h4 className="font-bold text-slate-900 text-sm leading-tight">{s}</h4>
-                              <p className="text-xs text-slate-500 leading-normal line-clamp-3">
-                                {STAGE_DESCRIPTIONS[s]}
-                              </p>
-                            </div>
-
-                            {/* Dropdown status update controls */}
-                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                              <div className="flex items-center justify-between gap-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Change Status:</label>
-                                <select 
-                                  value={colStatus}
-                                  onChange={(e) => handleStageStatusChange(s, e.target.value)}
-                                  className="text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-md py-1 px-1.5 focus:outline-none focus:ring-1 focus:ring-[#6366f1] cursor-pointer"
-                                >
-                                  {STATUS_OPTIONS.map(opt => (
-                                    <option key={opt} value={opt} className="bg-white text-slate-800">{opt}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              {/* Manual Arrow Shift Controls */}
-                              <div className="grid grid-cols-2 gap-1.5 pt-1">
-                                <button
-                                  disabled={colStatus === "To Do"}
-                                  onClick={() => moveStage(s, "left")}
-                                  className="flex items-center justify-center gap-1 rounded-md border border-slate-200 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                >
-                                  <span>← Move Back</span>
-                                </button>
-                                <button
-                                  disabled={colStatus === "Completed"}
-                                  onClick={() => moveStage(s, "right")}
-                                  className="flex items-center justify-center gap-1 rounded-md border border-slate-200 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                >
-                                  <span>Advance →</span>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {stagesInCol.length === 0 && (
-                          <div className="border border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-center text-slate-500 flex-1 min-h-[150px]">
-                            <span className="text-xs font-bold">No Stages</span>
-                            <span className="text-[10px] block mt-0.5">Change stage status to place cards here.</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-12 shadow-sm text-center space-y-4">
+                <CheckCircle2 className="h-12 w-12 text-[#6366f1] mx-auto opacity-70" />
+                <h2 className="text-xl font-bold text-slate-900">No Active Sprint Workflow</h2>
+                <p className="text-sm text-slate-500 max-w-md mx-auto">
+                  Once a project is assigned to you, the 5-phase Kanban stage workflow will appear here for updating progress.
+                </p>
               </div>
-            </div>
+            )
           )}
 
           {/* TAB 4: MY PROFILE */}

@@ -40,10 +40,15 @@ export async function fetchEmployeeProfile(empNum: number): Promise<EmployeeProf
   return res.json();
 }
 
-export async function fetchEmployeeProject(empNum: number): Promise<Project> {
-  const res = await fetch(`${API_BASE_URL}/api/employee/project/${empNum}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch employee project");
-  return res.json();
+export async function fetchEmployeeProject(empNum: number): Promise<Project | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/employee/project/${empNum}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn("fetchEmployeeProject notice:", err);
+    return null;
+  }
 }
 
 export async function fetchProjectStages(projectId: string): Promise<Record<string, string>> {

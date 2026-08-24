@@ -105,14 +105,11 @@ def get_emp_profile(emp_num: int):
         raise HTTPException(status_code=400, detail="Invalid employee number")
     return get_employee_profile(emp_num)
 
-@app.get("/api/employee/project/{emp_num}", response_model=Project)
+@app.get("/api/employee/project/{emp_num}", response_model=Optional[Project])
 def get_emp_project(emp_num: int):
     if not (1 <= emp_num <= 40):
         raise HTTPException(status_code=400, detail="Invalid employee number")
-    proj = storage.get_assigned_project_for_employee(emp_num)
-    if not proj:
-        raise HTTPException(status_code=404, detail="No project assigned to this employee")
-    return proj
+    return storage.get_assigned_project_for_employee(emp_num)
 
 @app.get("/api/projects/{project_id}/stages", response_model=Dict[str, str])
 def get_stages(project_id: str):
