@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { fetchProjects } from "@/lib/api";
@@ -27,7 +27,10 @@ import {
   BarChart3,
   ShieldCheck,
   Zap,
-  LogOut
+  LogOut,
+  Home,
+  Bell,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,50 +56,86 @@ export default function Sidebar() {
     loadProjects();
   }, [pathname]);
 
-  const navItems = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      path: "/",
-      active: pathname === "/",
-    },
-    {
-      title: "Tasks",
-      icon: CheckCircle2,
-      path: "/employee",
-      active: pathname === "/employee",
-    },
-    {
-      title: "Projects",
-      icon: FolderKanban,
-      path: "/lead",
-      active: pathname === "/lead",
-    },
-    {
-      title: "Team",
-      icon: Users,
-      path: "/lead",
-      active: false,
-    },
-    {
-      title: "Analytics",
-      icon: BarChart3,
-      path: "/",
-      active: false,
-    },
-    {
-      title: "Calendar",
-      icon: Calendar,
-      path: "/",
-      active: false,
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      path: "/",
-      active: false,
-    },
-  ];
+  const searchParams = useSearchParams();
+  const tabParam = searchParams ? searchParams.get("tab") : null;
+
+  const navItems = role === "employee"
+    ? [
+        {
+          title: "Home",
+          icon: Home,
+          path: "/employee?tab=home",
+          active: pathname === "/employee" && (tabParam === "home" || !tabParam),
+        },
+        {
+          title: "Assigned Project",
+          icon: Briefcase,
+          path: "/employee?tab=project",
+          active: pathname === "/employee" && tabParam === "project",
+        },
+        {
+          title: "Kanban System",
+          icon: FolderKanban,
+          path: "/employee?tab=progress",
+          active: pathname === "/employee" && tabParam === "progress",
+        },
+        {
+          title: "Notifications",
+          icon: Bell,
+          path: "/employee?tab=notifications",
+          active: pathname === "/employee" && tabParam === "notifications",
+        },
+        {
+          title: "My Profile",
+          icon: User,
+          path: "/employee?tab=profile",
+          active: pathname === "/employee" && tabParam === "profile",
+        },
+      ]
+    : [
+        {
+          title: "Dashboard",
+          icon: LayoutDashboard,
+          path: "/",
+          active: pathname === "/",
+        },
+        {
+          title: "Tasks",
+          icon: CheckCircle2,
+          path: "/employee",
+          active: pathname === "/employee",
+        },
+        {
+          title: "Projects",
+          icon: FolderKanban,
+          path: "/lead",
+          active: pathname === "/lead",
+        },
+        {
+          title: "Team",
+          icon: Users,
+          path: "/lead",
+          active: false,
+        },
+        {
+          title: "Analytics",
+          icon: BarChart3,
+          path: "/",
+          active: false,
+        },
+        {
+          title: "Calendar",
+          icon: Calendar,
+          path: "/",
+          active: false,
+        },
+        {
+          title: "Settings",
+          icon: Settings,
+          path: "/",
+          active: false,
+        },
+      ];
 
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
@@ -118,7 +157,7 @@ export default function Sidebar() {
     {
       role: "employee",
       title: "Employee",
-      name: "Devon Chen",
+      name: "Emma Watson",
       path: "/employee",
       icon: Users,
       color: "bg-emerald-600",
@@ -236,7 +275,7 @@ export default function Sidebar() {
           </div>
 
           {/* Quick Portfolio Blueprints Section */}
-          {!isCollapsed && (
+          {!isCollapsed && role === "manager" && (
             <div className="space-y-2 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between px-3">
                 <button

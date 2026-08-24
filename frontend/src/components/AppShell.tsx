@@ -10,17 +10,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isCollapsed } = useSidebar();
 
-  // If on login page, don't show sidebar
-  const isLoginPage = pathname === "/login";
+  // If on login page, don't show default sidebar
+  const isExcludedPage = pathname === "/login";
 
-  if (isLoginPage) {
+  if (isExcludedPage) {
     return <>{children}</>;
   }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex">
       {/* Sidebar on desktop / mobile drawer */}
-      <Sidebar />
+      <React.Suspense fallback={<div className="hidden md:block w-20 flex-shrink-0 bg-[#080c16]" />}>
+        <Sidebar />
+      </React.Suspense>
 
       {/* Main Content Area */}
       <div

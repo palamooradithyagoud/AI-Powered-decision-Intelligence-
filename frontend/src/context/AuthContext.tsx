@@ -31,11 +31,11 @@ const DEFAULT_DEMO_USERS: Record<UserRole, User> = {
     avatar_color: "bg-purple-600",
   },
   employee: {
-    id: "usr_employee_01",
-    email: "employee@company.ai",
-    name: "Devon Chen",
+    id: "emp_01",
+    email: "shivanallella@gmail.com",
+    name: "Emma Watson",
     role: "employee",
-    title: "Full-Stack & AI Engineer",
+    title: "UI/UX Engineer",
     avatar_color: "bg-emerald-600",
   },
 };

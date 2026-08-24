@@ -53,7 +53,7 @@ export default function Navbar() {
     {
       role: "employee",
       title: "Employee",
-      name: "Devon Chen",
+      name: "Emma Watson",
       path: "/employee",
       icon: Users,
       color: "bg-emerald-600",

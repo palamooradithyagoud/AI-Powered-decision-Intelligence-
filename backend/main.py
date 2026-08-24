@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+from typing import List, Optional, Dict
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,6 +41,47 @@ def health_check():
 @app.post("/api/auth/login", response_model=LoginResponse)
 def login(payload: LoginRequest):
     """Authenticate user with email and role selection."""
+    email_clean = payload.email.lower().strip()
+    is_emp_format = False
+    emp_num = None
+    
+    # Support login with email=shivanallella@gmail.com and password=emp_XX
+    if email_clean == "shivanallella@gmail.com":
+        pwd_clean = payload.password.lower().strip()
+        if pwd_clean.startswith("emp_"):
+            parts = pwd_clean.split("_")
+            if len(parts) == 2 and parts[1].isdigit():
+                num = int(parts[1])
+                if 1 <= num <= 40:
+                    user = storage.get_employee_user(num, email="shivanallella@gmail.com")
+                    return LoginResponse(
+                        user=user,
+                        token=f"jwt_mock_{user.id}_{user.role}",
+                        message=f"Successfully authenticated as {user.name} ({user.role})"
+                    )
+        raise HTTPException(status_code=401, detail="Invalid password for shivanallella@gmail.com. Password must be a valid employee ID (e.g. emp_01, emp_02).")
+
+    # Support both raw ID (e.g. emp_10) and email (e.g. emp_10@company.ai)
+    if email_clean.startswith("emp_"):
+        parts = email_clean.split("@")[0].split("_")
+        if len(parts) == 2 and parts[1].isdigit():
+            num = int(parts[1])
+            if 1 <= num <= 40:
+                is_emp_format = True
+                emp_num = num
+                
+    if is_emp_format:
+        # Check password (must equal employee ID)
+        if payload.password not in (f"emp_{emp_num}", f"emp_{emp_num:02d}"):
+            raise HTTPException(status_code=401, detail="Invalid password. For employees, the password initially equals the Employee ID.")
+        
+        user = storage.get_employee_user(emp_num)
+        return LoginResponse(
+            user=user,
+            token=f"jwt_mock_{user.id}_{user.role}",
+            message=f"Successfully authenticated as {user.name} ({user.role})"
+        )
+
     user = storage.authenticate_user(payload.email, payload.role)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -56,6 +97,37 @@ def get_demo_users():
     """Retrieve demo accounts for quick role selection."""
     from db.storage import DEMO_USERS
     return list(DEMO_USERS.values())
+
+@app.get("/api/employee/profile/{emp_num}")
+def get_emp_profile(emp_num: int):
+    from db.storage import get_employee_profile
+    if not (1 <= emp_num <= 40):
+        raise HTTPException(status_code=400, detail="Invalid employee number")
+    return get_employee_profile(emp_num)
+
+@app.get("/api/employee/project/{emp_num}", response_model=Project)
+def get_emp_project(emp_num: int):
+    if not (1 <= emp_num <= 40):
+        raise HTTPException(status_code=400, detail="Invalid employee number")
+    proj = storage.get_assigned_project_for_employee(emp_num)
+    if not proj:
+        raise HTTPException(status_code=404, detail="No project assigned to this employee")
+    return proj
+
+@app.get("/api/projects/{project_id}/stages", response_model=Dict[str, str])
+def get_stages(project_id: str):
+    return storage.get_project_stages(project_id)
+
+from pydantic import BaseModel
+from typing import Literal
+
+class UpdateStagePayload(BaseModel):
+    stage_name: str
+    status: Literal["To Do", "In Progress", "Review", "Completed"]
+
+@app.put("/api/projects/{project_id}/stages", response_model=Dict[str, str])
+def update_stage(project_id: str, payload: UpdateStagePayload):
+    return storage.update_project_stage(project_id, payload.stage_name, payload.status)
 
 # ================= TASKS & SPRINTS (Lead & Employee) =================
 @app.get("/api/tasks", response_model=List[TaskItem])
