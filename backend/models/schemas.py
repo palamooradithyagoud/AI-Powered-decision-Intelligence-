@@ -155,6 +155,9 @@ class Project(BaseModel):
     available_employees: int
     requirements: str
     status: Literal["Active", "Completed", "At-Risk", "Planning"] = "Active"
+    sent_to_lead: bool = False
+    lead_assigned: Optional[str] = "Elena Rostova"
+    sent_to_lead_at: Optional[str] = None
     created_at: str
     updated_at: str
     analysis: AIAnalysisResult

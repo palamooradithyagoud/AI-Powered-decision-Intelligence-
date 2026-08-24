@@ -33,7 +33,8 @@ import {
   Bell,
   MessageSquare,
   Plus,
-  Video
+  Video,
+  Check
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -551,6 +552,13 @@ export default function ManagerDashboard() {
                           >
                             {project.status}
                           </span>
+
+                          {project.sent_to_lead && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                              <Check className="h-3 w-3 text-emerald-600" />
+                              Dispatched to Elena Rostova
+                            </span>
+                          )}
                         </div>
 
                         <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">

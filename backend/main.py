@@ -196,6 +196,14 @@ def reanalyze_project(project_id: str, data: Optional[ProjectCreate] = None):
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 
+@app.post("/api/projects/{project_id}/send-to-lead", response_model=Project)
+def send_to_lead(project_id: str):
+    """Dispatch project directly to the Project Lead (Elena Rostova) for execution and scheduling."""
+    project = storage.send_to_lead(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
 @app.delete("/api/projects/{project_id}")
 def delete_project(project_id: str):
     """Delete a project."""

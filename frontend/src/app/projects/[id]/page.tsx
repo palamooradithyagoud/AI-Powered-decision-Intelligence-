@@ -13,7 +13,7 @@ import FeasibilityRadar from "@/components/FeasibilityRadar";
 import RiskMatrix from "@/components/RiskMatrix";
 import WhatIfSimulator from "@/components/WhatIfSimulator";
 import ExportBlueprintModal from "@/components/ExportBlueprintModal";
-import { fetchProjectById, reanalyzeProject } from "@/lib/api";
+import { fetchProjectById, reanalyzeProject, sendProjectToLead } from "@/lib/api";
 import { Project } from "@/types";
 import { 
   ArrowLeft, 
@@ -37,7 +37,10 @@ import {
   Lightbulb, 
   TrendingUp, 
   Network,
-  ExternalLink
+  ExternalLink,
+  Send,
+  Check,
+  ArrowRight
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -67,6 +70,8 @@ export default function ProjectBlueprintPage({
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [isSendingToLead, setIsSendingToLead] = useState(false);
+  const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
 
   const loadProject = async () => {
     setLoading(true);
@@ -94,6 +99,20 @@ export default function ProjectBlueprintPage({
       alert("Failed to re-analyze project");
     } finally {
       setIsReanalyzing(false);
+    }
+  };
+
+  const handleSendToLead = async () => {
+    if (!project) return;
+    setIsSendingToLead(true);
+    try {
+      const updated = await sendProjectToLead(project.id);
+      setProject(updated);
+      setIsHandoffModalOpen(true);
+    } catch (err: any) {
+      alert(err.message || "Failed to dispatch project to Project Lead");
+    } finally {
+      setIsSendingToLead(false);
     }
   };
 
@@ -157,11 +176,69 @@ export default function ProjectBlueprintPage({
         onClose={() => setIsSimulatorOpen(false)}
       />
 
-      <ExportBlueprintModal
-        project={project}
-        isOpen={isExportOpen}
-        onClose={() => setIsExportOpen(false)}
-      />
+      {/* Celebratory Handoff Modal */}
+      {isHandoffModalOpen && project && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl space-y-6 text-center">
+            
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-lg shadow-emerald-500/25 animate-bounce">
+              <Check className="h-8 w-8 stroke-[3]" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                Handoff Successfully Dispatched
+              </span>
+              <h2 className="text-2xl font-bold text-slate-900">
+                Project Dispatched to Elena Rostova!
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+                The technical blueprint, {timeline_breakdown.phases.length}-phase timeline milestones, and sprint deliverable backlog for <strong className="text-slate-900">{project.name}</strong> are now live in the Project Lead workspace.
+              </p>
+            </div>
+
+            {/* Scheduled Calendar Meeting Card */}
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-left space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#4f46e5] flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Auto-Scheduled Calendar Kickoff
+                </span>
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-md">
+                  10:00 AM Today
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-900">
+                Sprint Kickoff & Architecture Review: {project.name}
+              </p>
+              <p className="text-[11px] text-slate-600">
+                Attendees: <strong className="text-slate-800">Alexander Vance (Manager)</strong> & <strong className="text-slate-800">Elena Rostova (Lead)</strong>
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-2">
+              <Link
+                href="/lead"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-purple-600 px-5 py-3.5 text-sm font-bold text-white shadow-md hover:from-[#4f46e5] hover:to-purple-700 transition-all hover:scale-[1.01]"
+              >
+                <span>Switch to Project Lead Command Center</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setIsHandoffModalOpen(false)}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <span>Close Window</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
@@ -195,6 +272,12 @@ export default function ProjectBlueprintPage({
                   score={feasibility.feasibility_score}
                   size="lg"
                 />
+                {project.sent_to_lead && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    Dispatched to Elena Rostova
+                  </span>
+                )}
                 {analysis.engine && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-[#4f46e5] border border-indigo-200">
                     <Sparkles className="h-3.5 w-3.5 text-[#6366f1]" />
@@ -230,6 +313,35 @@ export default function ProjectBlueprintPage({
 
             {/* Quick Actions Buttons */}
             <div className="no-print flex flex-wrap items-center gap-2.5 shrink-0">
+              {/* Send to Project Lead Action */}
+              {!project.sent_to_lead ? (
+                <button
+                  onClick={handleSendToLead}
+                  disabled={isSendingToLead}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-indigo-500 to-purple-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-md hover:from-[#4f46e5] hover:to-purple-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 group cursor-pointer"
+                >
+                  {isSendingToLead ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Dispatching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      <span>Send to Project Lead →</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <Link
+                  href="/lead"
+                  className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors shadow-xs"
+                >
+                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Lead Workspace →</span>
+                </Link>
+              )}
+
               {/* What-If Simulation Sandbox */}
               <button
                 onClick={() => setIsSimulatorOpen(true)}
@@ -252,7 +364,7 @@ export default function ProjectBlueprintPage({
               <button
                 onClick={handleReanalyze}
                 disabled={isReanalyzing}
-                className="flex items-center gap-1.5 rounded-xl bg-[#6366f1] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#4f46e5] transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-900 transition-all disabled:opacity-50"
               >
                 <RefreshCw className={cn("h-4 w-4", isReanalyzing && "animate-spin")} />
                 <span>{isReanalyzing ? "Re-analyzing..." : "Re-Analyze"}</span>
@@ -617,7 +729,54 @@ export default function ProjectBlueprintPage({
 
         {/* Tab 2: Feasibility Radar Deep Dive */}
         {activeTab === "feasibility" && (
-          <FeasibilityRadar feasibility={feasibility} />
+          <div className="space-y-6">
+            <FeasibilityRadar feasibility={feasibility} />
+
+            {/* Handoff Ribbon inside Feasibility Tab */}
+            <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-900 to-slate-900 p-6 text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                  Project Lead Dispatch
+                </span>
+                <h4 className="text-base sm:text-lg font-bold text-white">
+                  Ready to execute sprint milestones?
+                </h4>
+                <p className="text-xs text-slate-300">
+                  {project.sent_to_lead
+                    ? "This project is currently dispatched to Elena Rostova for sprint tracking."
+                    : "Transfer the feasibility plan and task deliverables directly to Project Lead Elena Rostova."}
+                </p>
+              </div>
+
+              {!project.sent_to_lead ? (
+                <button
+                  onClick={handleSendToLead}
+                  disabled={isSendingToLead}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-purple-600 px-5 py-3 text-xs font-extrabold text-white shadow-md hover:from-[#4f46e5] hover:to-purple-700 transition-all shrink-0 cursor-pointer"
+                >
+                  {isSendingToLead ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Dispatching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      <span>Send to Project Lead →</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <Link
+                  href="/lead"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-all shrink-0"
+                >
+                  <Check className="h-4 w-4" />
+                  <span>Open Lead Workspace</span>
+                </Link>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Tab 3: Summary */}

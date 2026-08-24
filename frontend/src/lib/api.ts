@@ -173,6 +173,18 @@ export async function deleteProject(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete project");
 }
 
+export async function sendProjectToLead(projectId: string): Promise<Project> {
+  const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/send-to-lead`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ detail: "Failed to dispatch project to Project Lead" }));
+    throw new Error(errorData.detail || "Failed to dispatch project to Project Lead");
+  }
+  return res.json();
+}
+
 export async function simulateFeasibility(params: {
   project_id?: string;
   expected_days: number;

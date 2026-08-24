@@ -199,6 +199,35 @@ class SupabaseStorage:
             print(f"[SupabaseStorage] Error connecting to Supabase: {e}")
 
     # ================= PROJECTS =================
+    def _deserialize_project(self, row: dict) -> Project:
+        row_copy = dict(row)
+        analysis_data = row_copy.get("analysis") or {}
+        if isinstance(analysis_data, dict):
+            if row_copy.get("sent_to_lead") is None:
+                row_copy["sent_to_lead"] = analysis_data.get("sent_to_lead", False)
+            if row_copy.get("lead_assigned") is None:
+                row_copy["lead_assigned"] = analysis_data.get("lead_assigned", "Elena Rostova")
+            if row_copy.get("sent_to_lead_at") is None:
+                row_copy["sent_to_lead_at"] = analysis_data.get("sent_to_lead_at")
+        else:
+            row_copy["sent_to_lead"] = row_copy.get("sent_to_lead", False)
+            row_copy["lead_assigned"] = row_copy.get("lead_assigned", "Elena Rostova")
+        return Project(**row_copy)
+
+    def _serialize_project_row(self, project: Project) -> dict:
+        d = project.model_dump()
+        if isinstance(d.get("analysis"), dict):
+            d["analysis"]["sent_to_lead"] = project.sent_to_lead
+            d["analysis"]["lead_assigned"] = project.lead_assigned
+            d["analysis"]["sent_to_lead_at"] = project.sent_to_lead_at
+        
+        # Keep base SQL table columns
+        base_keys = {
+            "id", "name", "description", "expected_days", "available_employees",
+            "requirements", "status", "created_at", "updated_at", "analysis"
+        }
+        return {k: v for k, v in d.items() if k in base_keys}
+
     def list_projects(self) -> List[Project]:
         if not self.client:
             return []
@@ -207,7 +236,7 @@ class SupabaseStorage:
             projects = []
             for row in res.data:
                 try:
-                    projects.append(Project(**row))
+                    projects.append(self._deserialize_project(row))
                 except Exception as e:
                     print(f"[SupabaseStorage] Error deserializing project {row.get('id')}: {e}")
             return projects
@@ -221,7 +250,7 @@ class SupabaseStorage:
         try:
             res = self.client.table("projects").select("*").eq("id", project_id).limit(1).execute()
             if res.data:
-                return Project(**res.data[0])
+                return self._deserialize_project(res.data[0])
             return None
         except Exception as e:
             print(f"[SupabaseStorage] get_project error: {e}")
@@ -249,6 +278,9 @@ class SupabaseStorage:
             available_employees=data.available_employees,
             requirements=data.requirements,
             status=status,
+            sent_to_lead=False,
+            lead_assigned="Elena Rostova",
+            sent_to_lead_at=None,
             created_at=now_iso,
             updated_at=now_iso,
             analysis=analysis
@@ -256,7 +288,9 @@ class SupabaseStorage:
 
         if self.client:
             try:
-                self.client.table("projects").insert(project.model_dump()).execute()
+                row_data = self._serialize_project_row(project)
+                self.client.table("projects").insert(row_data).execute()
+
                 # Insert sprint tasks generated for this project
                 for p in analysis.timeline_breakdown.phases:
                     for deliv in p.key_deliverables:
@@ -333,6 +367,9 @@ class SupabaseStorage:
             available_employees=available_employees,
             requirements=requirements,
             status=status,
+            sent_to_lead=project.sent_to_lead,
+            lead_assigned=project.lead_assigned,
+            sent_to_lead_at=project.sent_to_lead_at,
             created_at=project.created_at,
             updated_at=now_iso,
             analysis=analysis
@@ -340,9 +377,50 @@ class SupabaseStorage:
 
         if self.client:
             try:
-                self.client.table("projects").update(updated_project.model_dump()).eq("id", project_id).execute()
+                row_data = self._serialize_project_row(updated_project)
+                self.client.table("projects").update(row_data).eq("id", project_id).execute()
             except Exception as e:
                 print(f"[SupabaseStorage] reanalyze_project error: {e}")
+
+        return updated_project
+
+    def send_to_lead(self, project_id: str) -> Optional[Project]:
+        project = self.get_project(project_id)
+        if not project:
+            return None
+
+        now_iso = datetime.now().isoformat()
+        updated_dict = project.model_dump()
+        updated_dict["sent_to_lead"] = True
+        updated_dict["lead_assigned"] = "Elena Rostova"
+        updated_dict["sent_to_lead_at"] = now_iso
+        updated_dict["status"] = "Active"
+        updated_dict["updated_at"] = now_iso
+
+        updated_project = Project(**updated_dict)
+
+        if self.client:
+            try:
+                row_data = self._serialize_project_row(updated_project)
+                self.client.table("projects").update(row_data).eq("id", project_id).execute()
+                
+                # Automatically schedule Sprint Kickoff meeting with Project Lead Elena Rostova
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                self.create_meeting(MeetingCreate(
+                    title=f"Sprint Kickoff & Architecture Review: {project.name}",
+                    project_id=project.id,
+                    project_name=project.name,
+                    date=today_str,
+                    start_time="10:00 AM",
+                    end_time="11:00 AM",
+                    duration_minutes=60,
+                    type="Sprint Planning",
+                    attendees=["Alexander Vance", "Elena Rostova"],
+                    location_or_link="Google Meet (meet.google.com/kuiper-handoff)",
+                    agenda=f"Formal Manager-to-Lead sprint handoff for {project.name}. Review deliverables, resource assignments, and activate execution milestones."
+                ))
+            except Exception as e:
+                print(f"[SupabaseStorage] send_to_lead error: {e}")
 
         return updated_project
 
@@ -430,7 +508,9 @@ class SupabaseStorage:
                 query = query.eq("status", status)
 
             res = query.order("created_at", desc=True).execute()
-            return [TaskItem(**t) for t in res.data]
+            if not res.data:
+                return []
+            return [TaskItem(**t) for t in res.data if isinstance(t, dict)]
         except Exception as e:
             print(f"[SupabaseStorage] list_tasks error: {e}")
             return []
@@ -440,7 +520,7 @@ class SupabaseStorage:
             return None
         try:
             res = self.client.table("tasks").update({"status": new_status}).eq("id", task_id).execute()
-            if res.data:
+            if res.data and len(res.data) > 0 and isinstance(res.data[0], dict):
                 return TaskItem(**res.data[0])
             return None
         except Exception as e:
@@ -497,7 +577,9 @@ class SupabaseStorage:
                 query = query.eq("project_id", project_id)
 
             res = query.order("date").order("start_time").execute()
-            return [MeetingItem(**m) for m in res.data]
+            if not res.data:
+                return []
+            return [MeetingItem(**m) for m in res.data if isinstance(m, dict)]
         except Exception as e:
             print(f"[SupabaseStorage] list_meetings error: {e}")
             return []

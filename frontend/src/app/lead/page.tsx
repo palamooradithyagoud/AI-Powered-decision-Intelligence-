@@ -177,11 +177,24 @@ export default function ProjectLeadDashboard() {
               return (
                 <div
                   key={p.id}
-                  className="rounded-2xl border border-slate-200 bg-[#f8fafc] p-4 space-y-3 hover:border-indigo-300 hover:bg-white transition-all shadow-sm"
+                  className={cn(
+                    "rounded-2xl border p-4 space-y-3 transition-all shadow-sm",
+                    p.sent_to_lead 
+                      ? "border-indigo-300 bg-gradient-to-b from-indigo-50/40 to-white ring-1 ring-indigo-200/50" 
+                      : "border-slate-200 bg-[#f8fafc] hover:border-slate-300 hover:bg-white"
+                  )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <h5 className="font-bold text-slate-900 text-sm truncate">{p.name}</h5>
-                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-[#4f46e5] border border-indigo-200">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 flex-1">
+                      {p.sent_to_lead && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200 shadow-xs mb-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          ⭐ Sent by Manager
+                        </span>
+                      )}
+                      <h5 className="font-bold text-slate-900 text-sm truncate">{p.name}</h5>
+                    </div>
+                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-[#4f46e5] border border-indigo-200 shrink-0">
                       {p.expected_days}d
                     </span>
                   </div>
@@ -203,13 +216,26 @@ export default function ProjectLeadDashboard() {
 
                   <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200">
                     <span className="text-slate-500">{p.analysis?.timeline_breakdown?.phases?.length || 4} Phases</span>
-                    <Link
-                      href={`/projects/${p.id}`}
-                      className="text-xs font-semibold text-[#6366f1] hover:text-[#4f46e5] flex items-center gap-1"
-                    >
-                      <span>Blueprint</span>
-                      <ArrowRight className="h-3 w-3" />
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedProjectId(selectedProjectId === p.id ? "ALL" : p.id)}
+                        className={cn(
+                          "text-[11px] font-bold px-2 py-0.5 rounded-md transition-colors",
+                          selectedProjectId === p.id 
+                            ? "bg-indigo-600 text-white" 
+                            : "text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        {selectedProjectId === p.id ? "Filtering" : "Filter Tasks"}
+                      </button>
+                      <Link
+                        href={`/projects/${p.id}`}
+                        className="text-xs font-semibold text-[#6366f1] hover:text-[#4f46e5] flex items-center gap-0.5"
+                      >
+                        <span>Blueprint</span>
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
