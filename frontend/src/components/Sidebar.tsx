@@ -150,7 +150,7 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/90 shadow-sm transition-all duration-300 ease-in-out",
+          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/90 shadow-sm transition-all duration-300 ease-in-out font-sans",
           isCollapsed ? "w-20" : "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
@@ -314,22 +314,22 @@ export default function Sidebar() {
 
         </div>
 
-        {/* Bottom Section: Team Orion Card */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+        {/* Bottom Section: Team Orion User Profile Card */}
+        <div className="p-3 border-t border-slate-100 bg-slate-50/50">
           
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className={cn(
-                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-md group",
+                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-gradient-to-r from-slate-900 via-[#131b2e] to-[#0f172a] hover:from-slate-800 hover:to-indigo-950 text-white shadow-sm border border-slate-800/80 group",
                 isCollapsed ? "justify-center" : "justify-between"
               )}
               title={isCollapsed ? "Team Orion • 12 members" : undefined}
             >
               <div className="flex items-center gap-3 min-w-0">
                 {/* Glowing sphere avatar */}
-                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-500 shadow-md shadow-indigo-500/25 flex-shrink-0">
-                  <div className="h-4 w-4 rounded-full bg-white/30 blur-[1px]" />
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#6366f1] via-[#8b5cf6] to-[#ec4899] shadow-md shadow-indigo-500/20 text-white text-xs font-black flex-shrink-0">
+                  <span>TO</span>
                 </div>
 
                 {!isCollapsed && (
@@ -337,7 +337,7 @@ export default function Sidebar() {
                     <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-200 transition-colors">
                       Team Orion
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate">
+                    <div className="text-[11px] text-indigo-200/70 truncate">
                       12 members • {role ? role.replace("_", " ") : "Manager"}
                     </div>
                   </div>
@@ -355,18 +355,18 @@ export default function Sidebar() {
             {/* Role Switcher Popover */}
             {roleSwitcherOpen && (
               <div className={cn(
-                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl backdrop-blur-md space-y-2 text-slate-800",
+                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xl backdrop-blur-md space-y-2.5 text-slate-800",
                 isCollapsed ? "left-16" : "left-0 right-0"
               )}>
-                <div className="px-2 py-1 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-1 py-1 border-b border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Role Navigation (Demo)
+                    Switch Workspace Role
                   </span>
                   <button
                     onClick={() => setRoleSwitcherOpen(false)}
-                    className="text-slate-400 hover:text-slate-700 text-xs"
+                    className="text-slate-400 hover:text-slate-700 text-xs p-1 rounded-md hover:bg-slate-100"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
@@ -382,12 +382,12 @@ export default function Sidebar() {
                         className={cn(
                           "w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all",
                           isCurrent
-                            ? "bg-[#ede9fe] font-bold text-[#4f46e5]"
+                            ? "bg-[#ede9fe] font-bold text-[#4f46e5] border border-indigo-200/60 shadow-xs"
                             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className={cn("flex h-6 w-6 items-center justify-center rounded-md text-white text-[10px]", opt.color)}>
+                          <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg text-white text-[10px] shadow-xs", opt.color)}>
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <div>
@@ -406,9 +406,9 @@ export default function Sidebar() {
                 <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 transition-all shadow-xs"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
+                    <LogOut className="h-3.5 w-3.5 text-rose-500" />
                     <span>Sign Out / Switch Account</span>
                   </button>
                 </div>
