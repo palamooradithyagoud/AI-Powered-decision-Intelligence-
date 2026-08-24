@@ -7,21 +7,19 @@ import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { UserRole } from "@/types";
 import { 
-  Sparkles, 
-  LayoutDashboard, 
-  PlusCircle, 
-  Layers, 
-  Users, 
-  LogOut, 
+  Calendar as CalendarIcon,
+  Bell,
   ChevronDown, 
   Menu,
   Briefcase, 
-  FolderKanban, 
-  CheckCircle2,
+  Layers, 
+  Users, 
+  LogOut, 
+  PlusCircle, 
+  ChevronLeft,
   ChevronRight,
-  ShieldAlert,
-  Zap,
-  Activity
+  CheckCircle2,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +28,10 @@ export default function Navbar() {
   const router = useRouter();
   const { user, role, switchRole, logout } = useAuth();
   const { toggleMobile } = useSidebar();
+  
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
@@ -39,7 +40,7 @@ export default function Navbar() {
       name: "Alexander Vance",
       path: "/",
       icon: Briefcase,
-      color: "bg-blue-600",
+      color: "bg-indigo-600",
     },
     {
       role: "project_lead",
@@ -70,97 +71,210 @@ export default function Navbar() {
     router.push("/login");
   };
 
-  // Get current breadcrumb label
-  const getPageTitle = () => {
-    if (pathname === "/") return { title: "Manager Dashboard", sub: "Portfolio KPIs & Live Feasibility" };
-    if (pathname === "/create") return { title: "AI Blueprint Studio", sub: "Automated Project Estimation" };
-    if (pathname === "/lead") return { title: "Sprint Command Center", sub: "Execution Tracking" };
-    if (pathname === "/employee") return { title: "My Task Hub", sub: "Sprint Deliverables" };
-    if (pathname.startsWith("/projects/")) return { title: "Project Blueprint", sub: "Full AI Architecture & Analysis" };
-    return { title: "Control Hub", sub: "Kuiper" };
-  };
-
-  const pageInfo = getPageTitle();
-
   return (
-    <header className="no-print sticky top-0 z-30 w-full border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="no-print sticky top-0 z-30 w-full border-b border-slate-200/90 bg-white/90 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
         
-        {/* Left Side: Mobile Hamburger & Breadcrumb Title */}
+        {/* Left Side: Mobile Hamburger */}
         <div className="flex items-center gap-3">
-          {/* Mobile Sidebar Hamburger Toggle */}
           <button
             onClick={toggleMobile}
-            className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-700 transition-colors"
+            className="md:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors flex-shrink-0"
             title="Open Menu"
           >
             <Menu className="h-5 w-5" />
           </button>
-
-          {/* Breadcrumb Info */}
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span className="text-slate-400 font-bold tracking-wider">KUIPER</span>
-              <ChevronRight className="h-3 w-3 text-slate-600" />
-              <span className="text-blue-400 font-semibold capitalize">
-                {role ? role.replace("_", " ") : "Manager"} Hub
-              </span>
-              <ChevronRight className="h-3 w-3 text-slate-600" />
-            </div>
-
-            <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
-              {pageInfo.title}
-            </h2>
-          </div>
         </div>
 
-        {/* Right Side: Quick Action & Profile / Switcher */}
-        <div className="flex items-center gap-3">
+        {/* Right Side: Quick Action, Calendar, Notifications & User Avatar Profile */}
+        <div className="flex items-center gap-3 relative ml-auto">
           
-
-
-          {/* Create Button shortcut (when not on /create) */}
+          {/* Create Button shortcut */}
           {pathname !== "/create" && role === "manager" && (
             <Link
               href="/create"
-              className="hidden sm:flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-blue-500/20 hover:from-blue-500 hover:to-indigo-500 transition-all"
+              className="hidden lg:flex items-center gap-1.5 rounded-xl bg-[#6366f1] px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#4f46e5] transition-all active:scale-95"
             >
               <PlusCircle className="h-3.5 w-3.5" />
-              <span>+ Create Project</span>
+              <span>+ New Project</span>
             </Link>
           )}
 
-          {/* User Profile & 1-Click Role Switcher */}
+          {/* Calendar Widget Button */}
           <div className="relative">
             <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/90 px-2.5 py-1.5 hover:border-slate-700 hover:bg-slate-800 transition-all text-left group"
+              onClick={() => {
+                setIsCalendarOpen(!isCalendarOpen);
+                setIsNotificationsOpen(false);
+                setIsDropdownOpen(false);
+              }}
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm",
+                isCalendarOpen && "border-[#6366f1] bg-[#ede9fe] text-[#6366f1]"
+              )}
+              title="Calendar & Milestones"
             >
-              <div
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm",
-                  user?.avatar_color || "bg-blue-600"
-                )}
-              >
-                {user?.name ? user.name[0] : "A"}
+              <CalendarIcon className="h-4 w-4" />
+            </button>
+
+            {/* Calendar Popover Dropdown */}
+            {isCalendarOpen && (
+              <div className="absolute right-0 top-12 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <span className="text-xs font-bold text-slate-900">August 2026</span>
+                  <div className="flex items-center gap-1">
+                    <button className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100">
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <button className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100">
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Days Grid */}
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px]">
+                  {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((d) => (
+                    <span key={d} className="font-semibold text-slate-400 py-0.5">{d}</span>
+                  ))}
+                  {[...Array(31)].map((_, i) => {
+                    const day = i + 1;
+                    const isToday = day === 24;
+                    const hasEvent = day === 23 || day === 24 || day === 28;
+                    return (
+                      <button
+                        key={day}
+                        className={cn(
+                          "h-7 w-7 rounded-lg flex items-center justify-center transition-colors relative mx-auto text-xs font-medium",
+                          isToday 
+                            ? "bg-[#6366f1] text-white font-bold shadow-md shadow-indigo-500/20" 
+                            : "text-slate-700 hover:bg-slate-100",
+                          hasEvent && !isToday && "text-[#4f46e5] font-bold"
+                        )}
+                      >
+                        {day}
+                        {hasEvent && !isToday && (
+                          <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#6366f1]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Event indicator */}
+                <div className="rounded-xl border border-indigo-100 bg-[#ede9fe]/40 p-2.5 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#4f46e5] flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" />
+                      Re-branding Discussion
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">1:30 PM</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 pl-3">Design • Meeting</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Notifications Bell */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsNotificationsOpen(!isNotificationsOpen);
+                setIsCalendarOpen(false);
+                setIsDropdownOpen(false);
+              }}
+              className={cn(
+                "relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm",
+                isNotificationsOpen && "border-[#6366f1] bg-[#ede9fe] text-[#6366f1]"
+              )}
+              title="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#6366f1]" />
+            </button>
+
+            {/* Notifications Popover */}
+            {isNotificationsOpen && (
+              <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">Notifications</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-[#4f46e5]">
+                      3 New
+                    </span>
+                  </div>
+                  <button className="text-[11px] text-[#6366f1] hover:underline font-medium">Mark all read</button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
+                    <div className="h-7 w-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Bell className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs min-w-0">
+                      <div className="font-semibold text-slate-900">Deadline approaching</div>
+                      <div className="text-[11px] text-slate-500">Re-branding meeting in 1 hour.</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">5m ago</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
+                    <div className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs min-w-0">
+                      <div className="font-semibold text-slate-900">Task update</div>
+                      <div className="text-[11px] text-slate-500">2 completed, 3 pending.</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">1h ago</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
+                    <div className="h-7 w-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-xs min-w-0">
+                      <div className="font-semibold text-slate-900">New message</div>
+                      <div className="text-[11px] text-slate-500">Sarah: "Design files are ready."</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">3h ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Profile Avatar with PR / AV Circle Pill */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setIsDropdownOpen(!isDropdownOpen);
+                setIsCalendarOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1 hover:border-slate-300 transition-all text-left group shadow-sm"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0f172a] text-xs font-bold text-white shadow-sm">
+                PR
               </div>
 
-              <div className="hidden sm:block">
-                <div className="text-xs font-bold text-slate-200 leading-tight">
+              <div className="hidden sm:block pr-1">
+                <div className="text-xs font-bold text-slate-800 leading-tight">
                   {user?.name || "Alexander Vance"}
                 </div>
-                <div className="text-[10px] text-blue-400 capitalize font-medium">
-                  {role ? role.replace("_", " ") : "Manager"}
-                </div>
               </div>
 
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400 group-hover:text-white transition-colors" />
+              <ChevronDown className={cn(
+                "h-3.5 w-3.5 text-slate-400 group-hover:text-slate-800 transition-transform mr-1",
+                isDropdownOpen && "rotate-180"
+              )} />
             </button>
 
             {/* Role Switcher Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-slate-700/80 bg-[#0c1220] p-3 shadow-2xl backdrop-blur-md space-y-2">
-                <div className="px-2 py-1 border-b border-slate-800">
+              <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl space-y-2 text-slate-800">
+                <div className="px-2 py-1 border-b border-slate-100">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     Switch Active Role (Demo)
                   </span>
@@ -178,8 +292,8 @@ export default function Navbar() {
                         className={cn(
                           "w-full flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition-all",
                           isCurrent
-                            ? "bg-slate-800 font-bold text-white border border-slate-700"
-                            : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                            ? "bg-[#ede9fe] font-bold text-[#4f46e5]"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
                         <div className="flex items-center gap-2.5">
@@ -187,25 +301,25 @@ export default function Navbar() {
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <div>
-                            <div className="text-slate-200 font-bold">{opt.title}</div>
-                            <div className="text-[10px] text-slate-500">{opt.name}</div>
+                            <div className="font-bold">{opt.title}</div>
+                            <div className="text-[10px] text-slate-400">{opt.name}</div>
                           </div>
                         </div>
                         {isCurrent && (
-                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="h-2 w-2 rounded-full bg-[#6366f1]" />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
+                <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 transition-all shadow-xs"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span>Sign Out / Change Account</span>
+                    <LogOut className="h-3.5 w-3.5 text-rose-500" />
+                    <span>Sign Out / Switch Account</span>
                   </button>
                 </div>
               </div>

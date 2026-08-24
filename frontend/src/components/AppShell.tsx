@@ -18,7 +18,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#070b14] flex">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex">
       {/* Sidebar on desktop / mobile drawer */}
       <React.Suspense fallback={<div className="hidden md:block w-20 flex-shrink-0 bg-[#080c16]" />}>
         <Sidebar />

@@ -1,36 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { fetchProjects } from "@/lib/api";
 import { Project, UserRole } from "@/types";
-import { 
-  Sparkles, 
-  LayoutDashboard, 
-  PlusCircle, 
-  Layers, 
-  Users, 
-  FolderKanban, 
-  ChevronLeft, 
-  ChevronRight, 
-  LogOut, 
-  Briefcase, 
-  Activity, 
-  ShieldCheck, 
-  Zap, 
-  Cpu, 
-  CheckCircle2, 
-  Clock, 
-  BarChart3, 
-  X,
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Users,
+  CheckCircle2,
+  Calendar,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  ShieldAlert,
-  HelpCircle,
+  PlusCircle,
+  Activity,
+  Layers,
+  Briefcase,
+  X,
+  Sparkles,
+  BarChart3,
+  ShieldCheck,
+  Zap,
+  LogOut,
   Home,
   Bell,
   User
@@ -47,20 +44,98 @@ export default function Sidebar() {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
-  // Load recent projects on mount
   useEffect(() => {
-    async function loadSidebarData() {
+    async function loadProjects() {
       try {
-        const projs = await fetchProjects().catch(() => []);
-        if (projs && Array.isArray(projs)) {
-          setRecentProjects(projs.slice(0, 5));
-        }
+        const data = await fetchProjects();
+        setRecentProjects(data.slice(0, 5));
       } catch (err) {
-        // Fallback quiet
+        console.error("Failed to load sidebar projects:", err);
       }
     }
-    loadSidebarData();
+    loadProjects();
   }, [pathname]);
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams ? searchParams.get("tab") : null;
+
+  const navItems = role === "employee"
+    ? [
+        {
+          title: "Home",
+          icon: Home,
+          path: "/employee?tab=home",
+          active: pathname === "/employee" && (tabParam === "home" || !tabParam),
+        },
+        {
+          title: "Assigned Project",
+          icon: Briefcase,
+          path: "/employee?tab=project",
+          active: pathname === "/employee" && tabParam === "project",
+        },
+        {
+          title: "Kanban System",
+          icon: FolderKanban,
+          path: "/employee?tab=progress",
+          active: pathname === "/employee" && tabParam === "progress",
+        },
+        {
+          title: "Notifications",
+          icon: Bell,
+          path: "/employee?tab=notifications",
+          active: pathname === "/employee" && tabParam === "notifications",
+        },
+        {
+          title: "My Profile",
+          icon: User,
+          path: "/employee?tab=profile",
+          active: pathname === "/employee" && tabParam === "profile",
+        },
+      ]
+    : [
+        {
+          title: "Dashboard",
+          icon: LayoutDashboard,
+          path: "/",
+          active: pathname === "/",
+        },
+        {
+          title: "Tasks",
+          icon: CheckCircle2,
+          path: "/employee",
+          active: pathname === "/employee",
+        },
+        {
+          title: "Projects",
+          icon: FolderKanban,
+          path: "/lead",
+          active: pathname === "/lead",
+        },
+        {
+          title: "Team",
+          icon: Users,
+          path: "/lead",
+          active: false,
+        },
+        {
+          title: "Analytics",
+          icon: BarChart3,
+          path: "/",
+          active: false,
+        },
+        {
+          title: "Calendar",
+          icon: Calendar,
+          path: "/",
+          active: false,
+        },
+        {
+          title: "Settings",
+          icon: Settings,
+          path: "/",
+          active: false,
+        },
+      ];
 
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
@@ -69,7 +144,7 @@ export default function Sidebar() {
       name: "Alexander Vance",
       path: "/",
       icon: Briefcase,
-      color: "bg-blue-600",
+      color: "bg-indigo-600",
     },
     {
       role: "project_lead",
@@ -98,104 +173,12 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    closeMobile();
     router.push("/login");
   };
 
-  const searchParams = useSearchParams();
-  const tabParam = searchParams ? searchParams.get("tab") : null;
-
-  // Main navigation items based on role
-  const navItems = role === "employee"
-    ? [
-        {
-          title: "Home",
-          subtitle: "Overview & metrics",
-          path: "/employee?tab=home",
-          icon: Home,
-          active: pathname === "/employee" && (tabParam === "home" || !tabParam),
-          badge: null,
-          badgeColor: "",
-        },
-        {
-          title: "Assigned Project",
-          subtitle: "Specifications & scope",
-          path: "/employee?tab=project",
-          icon: Briefcase,
-          active: pathname === "/employee" && tabParam === "project",
-          badge: null,
-          badgeColor: "",
-        },
-        {
-          title: "Kanban System",
-          subtitle: "Sprint stage progress",
-          path: "/employee?tab=progress",
-          icon: FolderKanban,
-          active: pathname === "/employee" && tabParam === "progress",
-          badge: null,
-          badgeColor: "",
-        },
-        {
-          title: "Notifications",
-          subtitle: "Alerts & updates",
-          path: "/employee?tab=notifications",
-          icon: Bell,
-          active: pathname === "/employee" && tabParam === "notifications",
-          badge: null,
-          badgeColor: "",
-        },
-        {
-          title: "My Profile",
-          subtitle: "Skills & allocation",
-          path: "/employee?tab=profile",
-          icon: User,
-          active: pathname === "/employee" && tabParam === "profile",
-          badge: null,
-          badgeColor: "",
-        },
-      ]
-    : [
-        {
-          title: "Manager Dashboard",
-          subtitle: "Portfolio Overview & KPIs",
-          path: "/",
-          icon: LayoutDashboard,
-          active: pathname === "/",
-          badge: "Live",
-          badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-        },
-        {
-          title: "Create Project",
-          subtitle: "AI Feasibility Planner",
-          path: "/create",
-          icon: PlusCircle,
-          active: pathname === "/create",
-          badge: "AI Scoper",
-          badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-        },
-        {
-          title: "Sprint Command Center",
-          subtitle: "Milestones & Delivery",
-          path: "/lead",
-          icon: Layers,
-          active: pathname === "/lead",
-          badge: null,
-          badgeColor: "",
-        },
-        {
-          title: "Team Task Hub",
-          subtitle: "Workforce Execution",
-          path: "/employee",
-          icon: CheckCircle2,
-          active: pathname === "/employee",
-          badge: null,
-          badgeColor: "",
-        },
-      ];
-
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div
           onClick={closeMobile}
@@ -206,48 +189,35 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#080c16]/95 backdrop-blur-xl border-r border-slate-800/80 transition-all duration-300 ease-in-out",
+          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/90 shadow-sm transition-all duration-300 ease-in-out font-sans",
           isCollapsed ? "w-20" : "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Top Header: Brand Logo & Collapse Toggle */}
-        <div className="h-16 flex items-center justify-between px-3.5 border-b border-slate-800/80 bg-slate-900/40">
+        <div className="h-24 sm:h-28 flex items-center justify-between px-5 border-b border-slate-100/60">
           <Link
             href="/"
             onClick={closeMobile}
-            className="flex items-center gap-2.5 overflow-hidden group"
+            className="flex items-center gap-2 overflow-hidden group py-1"
           >
-            <div className="relative flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 border border-slate-800 p-1 shadow-md group-hover:scale-105 transition-transform">
-              <img src="/kuiper-mark.png" alt="Kuiper" className="h-full w-full object-contain" />
-              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-              </span>
+            <div className="relative flex-shrink-0 flex items-center justify-center">
+              <img 
+                src={isCollapsed ? "/kuiper-mark-dark.png" : "/kuiper-logo-dark.png"} 
+                alt="Kuiper" 
+                className={cn(
+                  "object-contain transition-all duration-200",
+                  isCollapsed ? "h-11 w-11" : "h-16 sm:h-20 w-auto max-w-[165px]"
+                )} 
+              />
             </div>
-
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0 transition-opacity duration-200">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wider text-white">
-                    KUIPER<span className="text-orange-500 font-black">.</span>
-                  </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    MANAGER
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400 truncate font-medium">
-                  AI Decision Intelligence
-                </span>
-              </div>
-            )}
           </Link>
 
           {/* Desktop Collapse / Mobile Close Button */}
           <div className="flex items-center">
             <button
               onClick={closeMobile}
-              className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="md:hidden p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
               title="Close Menu"
             >
               <X className="h-5 w-5" />
@@ -255,7 +225,7 @@ export default function Sidebar() {
 
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="hidden md:flex p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isCollapsed ? (
@@ -267,64 +237,37 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Scrollable Navigation Body */}
+        {/* Navigation Body */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-6 scrollbar-thin">
           
-          {/* Main Navigation Section */}
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <div className="px-3 pb-2 text-[10px] font-bold tracking-wider uppercase text-slate-400">
-                Control Hub
-              </div>
-            )}
-
+          {/* Nav List */}
+          <div className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.path}
+                  key={item.title}
                   href={item.path}
                   onClick={closeMobile}
                   title={isCollapsed ? item.title : undefined}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200",
+                    "group flex items-center gap-3.5 rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
                     item.active
-                      ? "bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white shadow-md shadow-blue-500/20 font-bold border border-blue-400/20"
-                      : "text-slate-300 hover:bg-slate-800/70 hover:text-white hover:border-slate-700/50 border border-transparent"
+                      ? "bg-[#ede9fe] text-[#6366f1] font-bold shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
                   )}
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center rounded-lg p-1 transition-transform group-hover:scale-110",
-                      item.active ? "text-white" : "text-slate-400 group-hover:text-blue-400"
+                      "flex items-center justify-center transition-colors",
+                      item.active ? "text-[#6366f1]" : "text-slate-400 group-hover:text-slate-700"
                     )}
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-4.5 w-4.5 flex-shrink-0" />
                   </div>
 
                   {!isCollapsed && (
-                    <div className="flex flex-1 items-center justify-between min-w-0">
-                      <div className="truncate">
-                        <div className="leading-tight">{item.title}</div>
-                        <div className={cn(
-                          "text-[10px] truncate font-normal",
-                          item.active ? "text-blue-100/80" : "text-slate-500"
-                        )}>
-                          {item.subtitle}
-                        </div>
-                      </div>
-
-                      {item.badge && (
-                        <span
-                          className={cn(
-                            "rounded-full px-2 py-0.5 text-[9px] font-bold border ml-2 flex-shrink-0",
-                            item.active ? "bg-white/20 text-white border-white/30" : item.badgeColor
-                          )}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
+                    <span className="truncate">{item.title}</span>
                   )}
                 </Link>
               );
@@ -333,11 +276,11 @@ export default function Sidebar() {
 
           {/* Quick Portfolio Blueprints Section */}
           {!isCollapsed && role === "manager" && (
-            <div className="space-y-2 pt-2 border-t border-slate-800/80">
+            <div className="space-y-2 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between px-3">
                 <button
                   onClick={() => setProjectsOpen(!projectsOpen)}
-                  className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-300 transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   <FolderKanban className="h-3 w-3 text-slate-400" />
                   <span>Recent Blueprints</span>
@@ -347,7 +290,7 @@ export default function Sidebar() {
                     <ChevronDown className="h-3 w-3 ml-0.5 text-slate-400" />
                   )}
                 </button>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 font-bold">
                   {recentProjects.length}
                 </span>
               </div>
@@ -355,7 +298,7 @@ export default function Sidebar() {
               {projectsOpen && (
                 <div className="space-y-1 pl-1">
                   {recentProjects.length === 0 ? (
-                    <div className="px-3 py-2 text-[11px] text-slate-500 italic">
+                    <div className="px-3 py-2 text-[11px] text-slate-400 italic">
                       No active blueprints yet
                     </div>
                   ) : (
@@ -366,10 +309,10 @@ export default function Sidebar() {
                       
                       const dotColor = 
                         status === "FEASIBLE" 
-                          ? "bg-emerald-400 shadow-emerald-500/50" 
+                          ? "bg-emerald-500 shadow-emerald-500/50" 
                           : status === "FEASIBLE WITH CHANGES" 
-                          ? "bg-amber-400 shadow-amber-500/50" 
-                          : "bg-rose-400 shadow-rose-500/50";
+                          ? "bg-amber-500 shadow-amber-500/50" 
+                          : "bg-rose-500 shadow-rose-500/50";
 
                       return (
                         <Link
@@ -377,17 +320,17 @@ export default function Sidebar() {
                           href={`/projects/${p.id}`}
                           onClick={closeMobile}
                           className={cn(
-                            "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-all group",
+                            "flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition-all group",
                             isActive
-                              ? "bg-blue-950/40 text-blue-300 font-semibold border border-blue-800/40"
-                              : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                              ? "bg-indigo-50 text-[#4f46e5] font-semibold"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0 shadow-sm", dotColor)} />
                             <span className="truncate text-[11px]">{p.name}</span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-300 ml-1.5 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600 ml-1.5 flex-shrink-0 font-medium">
                             {score}%
                           </span>
                         </Link>
@@ -398,59 +341,52 @@ export default function Sidebar() {
                   <Link
                     href="/create"
                     onClick={closeMobile}
-                    className="flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 px-3 py-1.5 font-medium hover:underline"
+                    className="flex items-center gap-1.5 text-[11px] text-[#6366f1] hover:text-[#4f46e5] px-3 py-1.5 font-semibold hover:underline"
                   >
                     <PlusCircle className="h-3 w-3" />
-                    <span>Scope New Project Blueprint</span>
+                    <span>+ New Project Blueprint</span>
                   </Link>
                 </div>
               )}
             </div>
           )}
 
-
-
         </div>
 
-        {/* Bottom Section: User Profile & Role Switcher */}
-        <div className="border-t border-slate-800/80 bg-slate-900/80 p-3 space-y-2">
+        {/* Bottom Section: Team Orion User Profile Card */}
+        <div className="p-3 border-t border-slate-100 bg-slate-50/50">
           
-          {/* User Profile Button */}
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className={cn(
-                "w-full flex items-center rounded-xl p-2 transition-all hover:bg-slate-800 border border-slate-800/80",
+                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-gradient-to-r from-slate-900 via-[#131b2e] to-[#0f172a] hover:from-slate-800 hover:to-indigo-950 text-white shadow-sm border border-slate-800/80 group",
                 isCollapsed ? "justify-center" : "justify-between"
               )}
-              title={isCollapsed ? `${user?.name} (${role})` : undefined}
+              title={isCollapsed ? "Team Orion • 12 members" : undefined}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm flex-shrink-0",
-                    user?.avatar_color || "bg-blue-600"
-                  )}
-                >
-                  {user?.name ? user.name[0] : "A"}
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Glowing sphere avatar */}
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#6366f1] via-[#8b5cf6] to-[#ec4899] shadow-md shadow-indigo-500/20 text-white text-xs font-black flex-shrink-0">
+                  <span>TO</span>
                 </div>
 
                 {!isCollapsed && (
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-slate-200 truncate leading-tight">
-                      {user?.name || "Alexander Vance"}
+                    <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-200 transition-colors">
+                      Team Orion
                     </div>
-                    <div className="text-[10px] text-blue-400 font-semibold truncate capitalize">
-                      {role ? role.replace("_", " ") : "Manager"}
+                    <div className="text-[11px] text-indigo-200/70 truncate">
+                      12 members • {role ? role.replace("_", " ") : "Manager"}
                     </div>
                   </div>
                 )}
               </div>
 
               {!isCollapsed && (
-                <ChevronDown className={cn(
-                  "h-3.5 w-3.5 text-slate-400 transition-transform",
-                  roleSwitcherOpen && "rotate-180"
+                <ChevronRight className={cn(
+                  "h-4 w-4 text-slate-400 group-hover:text-white transition-transform",
+                  roleSwitcherOpen && "rotate-90"
                 )} />
               )}
             </button>
@@ -458,18 +394,18 @@ export default function Sidebar() {
             {/* Role Switcher Popover */}
             {roleSwitcherOpen && (
               <div className={cn(
-                "absolute bottom-14 z-50 w-64 rounded-2xl border border-slate-700 bg-[#0c1220] p-3 shadow-2xl backdrop-blur-md space-y-2",
+                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xl backdrop-blur-md space-y-2.5 text-slate-800",
                 isCollapsed ? "left-16" : "left-0 right-0"
               )}>
-                <div className="px-2 py-1 border-b border-slate-800 flex items-center justify-between">
+                <div className="px-1 py-1 border-b border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Role Navigation (Demo)
+                    Switch Workspace Role
                   </span>
                   <button
                     onClick={() => setRoleSwitcherOpen(false)}
-                    className="text-slate-500 hover:text-slate-300 text-xs"
+                    className="text-slate-400 hover:text-slate-700 text-xs p-1 rounded-md hover:bg-slate-100"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
@@ -485,34 +421,34 @@ export default function Sidebar() {
                         className={cn(
                           "w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all",
                           isCurrent
-                            ? "bg-slate-800 font-bold text-white border border-slate-700"
-                            : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                            ? "bg-[#ede9fe] font-bold text-[#4f46e5] border border-indigo-200/60 shadow-xs"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className={cn("flex h-6 w-6 items-center justify-center rounded-md text-white text-[10px]", opt.color)}>
+                          <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg text-white text-[10px] shadow-xs", opt.color)}>
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <div>
-                            <div className="text-slate-200 font-bold">{opt.title}</div>
-                            <div className="text-[10px] text-slate-500">{opt.name}</div>
+                            <div className="font-bold">{opt.title}</div>
+                            <div className="text-[10px] text-slate-400">{opt.name}</div>
                           </div>
                         </div>
                         {isCurrent && (
-                          <span className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="h-2 w-2 rounded-full bg-[#6366f1]" />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
+                <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 transition-all shadow-xs"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span>Sign Out / Change Role</span>
+                    <LogOut className="h-3.5 w-3.5 text-rose-500" />
+                    <span>Sign Out / Switch Account</span>
                   </button>
                 </div>
               </div>
