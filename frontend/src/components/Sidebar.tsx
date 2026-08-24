@@ -1,38 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
-import { fetchProjects, fetchHealth } from "@/lib/api";
+import { fetchProjects } from "@/lib/api";
 import { Project, UserRole } from "@/types";
-import { 
-  Sparkles, 
-  LayoutDashboard, 
-  PlusCircle, 
-  Layers, 
-  Users, 
-  FolderKanban, 
-  ChevronLeft, 
-  ChevronRight, 
-  LogOut, 
-  Briefcase, 
-  Activity, 
-  ShieldCheck, 
-  Zap, 
-  Cpu, 
-  CheckCircle2, 
-  Clock, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Users,
+  CheckCircle2,
   Calendar,
   Settings,
-  X,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  ShieldAlert,
-  HelpCircle
+  PlusCircle,
+  Activity,
+  Layers,
+  Briefcase,
+  X,
+  Sparkles,
+  BarChart3,
+  ShieldCheck,
+  Zap,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,20 +41,62 @@ export default function Sidebar() {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
-  // Load recent projects on mount
   useEffect(() => {
-    async function loadSidebarData() {
+    async function loadProjects() {
       try {
-        const projs = await fetchProjects().catch(() => []);
-        if (projs && Array.isArray(projs)) {
-          setRecentProjects(projs.slice(0, 5));
-        }
+        const data = await fetchProjects();
+        setRecentProjects(data.slice(0, 5));
       } catch (err) {
-        // Fallback quiet
+        console.error("Failed to load sidebar projects:", err);
       }
     }
-    loadSidebarData();
+    loadProjects();
   }, [pathname]);
+
+  const navItems = [
+    {
+      title: "Dashboard",
+      icon: LayoutDashboard,
+      path: "/",
+      active: pathname === "/",
+    },
+    {
+      title: "Tasks",
+      icon: CheckCircle2,
+      path: "/employee",
+      active: pathname === "/employee",
+    },
+    {
+      title: "Projects",
+      icon: FolderKanban,
+      path: "/lead",
+      active: pathname === "/lead",
+    },
+    {
+      title: "Team",
+      icon: Users,
+      path: "/lead",
+      active: false,
+    },
+    {
+      title: "Analytics",
+      icon: BarChart3,
+      path: "/",
+      active: false,
+    },
+    {
+      title: "Calendar",
+      icon: Calendar,
+      path: "/",
+      active: false,
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      path: "/",
+      active: false,
+    },
+  ];
 
   const roleOptions: { role: UserRole; title: string; name: string; path: string; icon: any; color: string }[] = [
     {
@@ -68,7 +105,7 @@ export default function Sidebar() {
       name: "Alexander Vance",
       path: "/",
       icon: Briefcase,
-      color: "bg-blue-600",
+      color: "bg-indigo-600",
     },
     {
       role: "project_lead",
@@ -97,59 +134,12 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    closeMobile();
     router.push("/login");
   };
 
-  // Main navigation items matching reference
-  const navItems = [
-    {
-      title: "Dashboard",
-      path: "/",
-      icon: LayoutDashboard,
-      active: pathname === "/",
-    },
-    {
-      title: "Tasks",
-      path: "/employee",
-      icon: CheckCircle2,
-      active: pathname === "/employee",
-    },
-    {
-      title: "Projects",
-      path: "/",
-      icon: FolderKanban,
-      active: pathname === "/" && false,
-    },
-    {
-      title: "Team",
-      path: "/lead",
-      icon: Users,
-      active: pathname === "/lead",
-    },
-    {
-      title: "Analytics",
-      path: "/",
-      icon: BarChart3,
-      active: false,
-    },
-    {
-      title: "Calendar",
-      path: "/lead",
-      icon: Calendar,
-      active: false,
-    },
-    {
-      title: "Settings",
-      path: "/login",
-      icon: Settings,
-      active: pathname === "/login",
-    },
-  ];
-
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div
           onClick={closeMobile}
@@ -160,25 +150,25 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#0b0f19] backdrop-blur-xl border-r border-slate-800/80 transition-all duration-300 ease-in-out",
+          "no-print fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/90 shadow-sm transition-all duration-300 ease-in-out",
           isCollapsed ? "w-20" : "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
         {/* Top Header: Brand Logo & Collapse Toggle */}
-        <div className="h-20 flex items-center justify-between px-4 border-b border-slate-800/60">
+        <div className="h-24 sm:h-28 flex items-center justify-between px-5 border-b border-slate-100/60">
           <Link
             href="/"
             onClick={closeMobile}
-            className="flex items-center gap-3 overflow-hidden group py-2"
+            className="flex items-center gap-2 overflow-hidden group py-1"
           >
             <div className="relative flex-shrink-0 flex items-center justify-center">
               <img 
-                src={isCollapsed ? "/kuiper-mark.png" : "/kuiper-logo.png"} 
+                src={isCollapsed ? "/kuiper-mark-dark.png" : "/kuiper-logo-dark.png"} 
                 alt="Kuiper" 
                 className={cn(
                   "object-contain transition-all duration-200",
-                  isCollapsed ? "h-10 w-10" : "h-10 w-auto max-w-[170px]"
+                  isCollapsed ? "h-11 w-11" : "h-16 sm:h-20 w-auto max-w-[165px]"
                 )} 
               />
             </div>
@@ -188,7 +178,7 @@ export default function Sidebar() {
           <div className="flex items-center">
             <button
               onClick={closeMobile}
-              className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="md:hidden p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
               title="Close Menu"
             >
               <X className="h-5 w-5" />
@@ -196,7 +186,7 @@ export default function Sidebar() {
 
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors"
+              className="hidden md:flex p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isCollapsed ? (
@@ -222,16 +212,16 @@ export default function Sidebar() {
                   onClick={closeMobile}
                   title={isCollapsed ? item.title : undefined}
                   className={cn(
-                    "group flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex items-center gap-3.5 rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
                     item.active
-                      ? "bg-indigo-600/15 text-indigo-400 font-semibold border border-indigo-500/20 shadow-sm"
-                      : "text-slate-400 hover:bg-slate-850 hover:text-slate-200 hover:bg-slate-900/60"
+                      ? "bg-[#ede9fe] text-[#6366f1] font-bold shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
                   )}
                 >
                   <div
                     className={cn(
                       "flex items-center justify-center transition-colors",
-                      item.active ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"
+                      item.active ? "text-[#6366f1]" : "text-slate-400 group-hover:text-slate-700"
                     )}
                   >
                     <Icon className="h-4.5 w-4.5 flex-shrink-0" />
@@ -247,11 +237,11 @@ export default function Sidebar() {
 
           {/* Quick Portfolio Blueprints Section */}
           {!isCollapsed && (
-            <div className="space-y-2 pt-3 border-t border-slate-800/60">
+            <div className="space-y-2 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between px-3">
                 <button
                   onClick={() => setProjectsOpen(!projectsOpen)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-300 transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   <FolderKanban className="h-3 w-3 text-slate-400" />
                   <span>Recent Blueprints</span>
@@ -261,7 +251,7 @@ export default function Sidebar() {
                     <ChevronDown className="h-3 w-3 ml-0.5 text-slate-400" />
                   )}
                 </button>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 font-bold">
                   {recentProjects.length}
                 </span>
               </div>
@@ -269,7 +259,7 @@ export default function Sidebar() {
               {projectsOpen && (
                 <div className="space-y-1 pl-1">
                   {recentProjects.length === 0 ? (
-                    <div className="px-3 py-2 text-[11px] text-slate-500 italic">
+                    <div className="px-3 py-2 text-[11px] text-slate-400 italic">
                       No active blueprints yet
                     </div>
                   ) : (
@@ -280,10 +270,10 @@ export default function Sidebar() {
                       
                       const dotColor = 
                         status === "FEASIBLE" 
-                          ? "bg-emerald-400 shadow-emerald-500/50" 
+                          ? "bg-emerald-500 shadow-emerald-500/50" 
                           : status === "FEASIBLE WITH CHANGES" 
-                          ? "bg-amber-400 shadow-amber-500/50" 
-                          : "bg-rose-400 shadow-rose-500/50";
+                          ? "bg-amber-500 shadow-amber-500/50" 
+                          : "bg-rose-500 shadow-rose-500/50";
 
                       return (
                         <Link
@@ -291,17 +281,17 @@ export default function Sidebar() {
                           href={`/projects/${p.id}`}
                           onClick={closeMobile}
                           className={cn(
-                            "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-all group",
+                            "flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition-all group",
                             isActive
-                              ? "bg-indigo-950/40 text-indigo-300 font-semibold border border-indigo-800/40"
-                              : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                              ? "bg-indigo-50 text-[#4f46e5] font-semibold"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0 shadow-sm", dotColor)} />
                             <span className="truncate text-[11px]">{p.name}</span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-300 ml-1.5 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600 ml-1.5 flex-shrink-0 font-medium">
                             {score}%
                           </span>
                         </Link>
@@ -312,7 +302,7 @@ export default function Sidebar() {
                   <Link
                     href="/create"
                     onClick={closeMobile}
-                    className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 px-3 py-1.5 font-medium hover:underline"
+                    className="flex items-center gap-1.5 text-[11px] text-[#6366f1] hover:text-[#4f46e5] px-3 py-1.5 font-semibold hover:underline"
                   >
                     <PlusCircle className="h-3 w-3" />
                     <span>+ New Project Blueprint</span>
@@ -324,14 +314,14 @@ export default function Sidebar() {
 
         </div>
 
-        {/* Bottom Section: Team Orion Card matching Reference */}
-        <div className="p-3 border-t border-slate-800/60 bg-slate-900/40">
+        {/* Bottom Section: Team Orion Card */}
+        <div className="p-3 border-t border-slate-100 bg-slate-50/60">
           
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
               className={cn(
-                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-gradient-to-r from-slate-900 to-[#0c1220] border border-slate-800 hover:border-slate-700 shadow-md group",
+                "w-full flex items-center rounded-2xl p-2.5 transition-all bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-md group",
                 isCollapsed ? "justify-center" : "justify-between"
               )}
               title={isCollapsed ? "Team Orion • 12 members" : undefined}
@@ -339,12 +329,12 @@ export default function Sidebar() {
               <div className="flex items-center gap-3 min-w-0">
                 {/* Glowing sphere avatar */}
                 <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-500 shadow-md shadow-indigo-500/25 flex-shrink-0">
-                  <div className="h-4 w-4 rounded-full bg-white/20 blur-[1px]" />
+                  <div className="h-4 w-4 rounded-full bg-white/30 blur-[1px]" />
                 </div>
 
                 {!isCollapsed && (
                   <div className="text-left min-w-0">
-                    <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-300 transition-colors">
+                    <div className="text-xs font-bold text-white truncate leading-tight group-hover:text-indigo-200 transition-colors">
                       Team Orion
                     </div>
                     <div className="text-[11px] text-slate-400 truncate">
@@ -365,16 +355,16 @@ export default function Sidebar() {
             {/* Role Switcher Popover */}
             {roleSwitcherOpen && (
               <div className={cn(
-                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-700 bg-[#0c1220] p-3 shadow-2xl backdrop-blur-md space-y-2",
+                "absolute bottom-16 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl backdrop-blur-md space-y-2 text-slate-800",
                 isCollapsed ? "left-16" : "left-0 right-0"
               )}>
-                <div className="px-2 py-1 border-b border-slate-800 flex items-center justify-between">
+                <div className="px-2 py-1 border-b border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Role Navigation (Demo)
                   </span>
                   <button
                     onClick={() => setRoleSwitcherOpen(false)}
-                    className="text-slate-500 hover:text-slate-300 text-xs"
+                    className="text-slate-400 hover:text-slate-700 text-xs"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -392,8 +382,8 @@ export default function Sidebar() {
                         className={cn(
                           "w-full flex items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all",
                           isCurrent
-                            ? "bg-slate-800 font-bold text-white border border-slate-700"
-                            : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                            ? "bg-[#ede9fe] font-bold text-[#4f46e5]"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
                         <div className="flex items-center gap-2.5">
@@ -401,22 +391,22 @@ export default function Sidebar() {
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <div>
-                            <div className="text-slate-200 font-bold">{opt.title}</div>
-                            <div className="text-[10px] text-slate-500">{opt.name}</div>
+                            <div className="font-bold">{opt.title}</div>
+                            <div className="text-[10px] text-slate-400">{opt.name}</div>
                           </div>
                         </div>
                         {isCurrent && (
-                          <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                          <span className="h-2 w-2 rounded-full bg-[#6366f1]" />
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
+                <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors"
+                    className="w-full flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Sign Out / Switch Account</span>

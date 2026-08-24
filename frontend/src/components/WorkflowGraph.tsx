@@ -24,11 +24,10 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
     const generatedEdges: Edge[] = [];
 
     // Layout configuration: multi-column workflow
-    const colWidth = 240;
-    const rowHeight = 110;
+    const colWidth = 250;
+    const rowHeight = 120;
 
     phases.forEach((phase, index) => {
-      // Calculate column and row for clean DAG visualization
       const col = index % 3;
       const row = Math.floor(index / 3);
 
@@ -36,19 +35,19 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
       const isQA = phase.phase_name.toLowerCase().includes("testing") || phase.phase_name.toLowerCase().includes("qa");
       const isDeploy = phase.phase_name.toLowerCase().includes("deploy");
 
-      let borderClr = "border-blue-500/50";
-      let bgClr = "bg-slate-900/90";
-      let badgeClr = "bg-blue-500/20 text-blue-300";
+      let borderClr = "border-indigo-200";
+      let bgClr = "bg-white";
+      let badgeClr = "bg-indigo-50 text-[#4f46e5]";
 
       if (isBuffer) {
-        borderClr = "border-emerald-500/50";
-        badgeClr = "bg-emerald-500/20 text-emerald-300";
+        borderClr = "border-emerald-200";
+        badgeClr = "bg-emerald-50 text-emerald-700";
       } else if (isQA) {
-        borderClr = "border-amber-500/50";
-        badgeClr = "bg-amber-500/20 text-amber-300";
+        borderClr = "border-amber-200";
+        badgeClr = "bg-amber-50 text-amber-700";
       } else if (isDeploy) {
-        borderClr = "border-indigo-500/50";
-        badgeClr = "bg-indigo-500/20 text-indigo-300";
+        borderClr = "border-purple-200";
+        badgeClr = "bg-purple-50 text-purple-700";
       }
 
       generatedNodes.push({
@@ -56,19 +55,19 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
         position: { x: col * colWidth + 40, y: row * rowHeight + 40 },
         data: {
           label: (
-            <div className={`p-3 rounded-xl border ${borderClr} ${bgClr} text-left shadow-lg backdrop-blur-md min-w-[200px]`}>
+            <div className={`p-3.5 rounded-2xl border ${borderClr} ${bgClr} text-left shadow-sm min-w-[210px]`}>
               <div className="flex items-center justify-between gap-1 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Phase {index + 1}
                 </span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${badgeClr}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${badgeClr}`}>
                   {phase.duration_days}d
                 </span>
               </div>
-              <div className="font-bold text-white text-xs truncate">
+              <div className="font-bold text-slate-900 text-xs truncate">
                 {phase.phase_name}
               </div>
-              <div className="text-[10px] text-slate-400 mt-1">
+              <div className="text-[10px] text-slate-500 mt-1 font-medium">
                 Days {phase.start_day} → {phase.end_day}
               </div>
             </div>
@@ -85,10 +84,10 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
           source: `node-${index - 1}`,
           target: `node-${index}`,
           animated: true,
-          style: { stroke: "#3b82f6", strokeWidth: 2 },
+          style: { stroke: "#6366f1", strokeWidth: 2 },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: "#3b82f6",
+            color: "#6366f1",
           },
         });
       }
@@ -98,9 +97,9 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
   }, [phases]);
 
   return (
-    <div className="h-[420px] w-full rounded-xl border border-slate-800 bg-[#070b14] overflow-hidden relative shadow-inner">
-      <div className="absolute top-3 left-3 z-10 rounded-lg bg-slate-900/80 px-3 py-1.5 border border-slate-800 text-[11px] text-slate-400 backdrop-blur-md">
-        <span className="font-semibold text-slate-200">Interactive Execution Architecture Graph</span> • Drag or zoom to explore
+    <div className="h-[420px] w-full rounded-2xl border border-slate-200 bg-[#f8fafc] overflow-hidden relative shadow-sm font-sans">
+      <div className="absolute top-3 left-3 z-10 rounded-xl bg-white/90 px-3.5 py-1.5 border border-slate-200 text-[11px] text-slate-600 shadow-xs backdrop-blur-md">
+        <span className="font-bold text-slate-900">Execution Architecture Graph</span> • Drag or zoom to explore
       </div>
       <ReactFlow
         nodes={nodes}
@@ -109,12 +108,12 @@ export default function WorkflowGraph({ phases }: WorkflowGraphProps) {
         attributionPosition="bottom-right"
         className="bg-transparent"
       >
-        <Background color="#1e293b" gap={16} />
-        <Controls className="bg-slate-900 border border-slate-800 text-white fill-white" />
+        <Background color="#cbd5e1" gap={16} />
+        <Controls className="bg-white border border-slate-200 text-slate-800 fill-slate-800 shadow-sm rounded-xl" />
         <MiniMap
-          nodeColor="#3b82f6"
-          maskColor="rgba(11, 15, 25, 0.7)"
-          className="bg-slate-950 border border-slate-800 rounded-lg"
+          nodeColor="#6366f1"
+          maskColor="rgba(241, 245, 249, 0.7)"
+          className="bg-white border border-slate-200 rounded-xl shadow-sm"
         />
       </ReactFlow>
     </div>

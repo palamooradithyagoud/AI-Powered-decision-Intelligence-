@@ -65,26 +65,26 @@ ${project.analysis.ai_recommendation.primary_advice}
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md transition-all">
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-700/80 bg-[#0c1220] p-6 sm:p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs transition-all font-sans">
+      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-2xl">
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          className="absolute top-4 right-4 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-md shadow-blue-500/20">
-            <FileText className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-[#6366f1] border border-indigo-200">
+            <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-lg font-bold text-slate-900">
               Export Project Blueprint
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Download or export the complete AI analysis and feasibility report.
             </p>
           </div>
@@ -95,22 +95,22 @@ ${project.analysis.ai_recommendation.primary_advice}
           {/* Print / PDF */}
           <button
             onClick={handlePrint}
-            className="w-full flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-left hover:border-blue-500/40 hover:bg-slate-800/80 transition-all group"
+            className="w-full flex items-center justify-between rounded-2xl border border-slate-200 bg-[#f8fafc] p-4 text-left hover:border-indigo-300 hover:bg-white transition-all group shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-500/20 p-2.5 text-blue-400 group-hover:scale-105 transition-transform">
+              <div className="rounded-xl bg-indigo-50 p-2.5 text-[#6366f1] group-hover:scale-105 transition-transform">
                 <Printer className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-slate-900">
                   Print / Save as PDF
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   Formatted executive dossier ready for stakeholders
                 </div>
               </div>
             </div>
-            <span className="text-xs text-blue-400 font-semibold group-hover:translate-x-1 transition-transform">
+            <span className="text-xs text-[#6366f1] font-semibold group-hover:translate-x-1 transition-transform">
               Print →
             </span>
           </button>
@@ -118,22 +118,22 @@ ${project.analysis.ai_recommendation.primary_advice}
           {/* Download JSON */}
           <button
             onClick={handleDownloadJson}
-            className="w-full flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-left hover:border-emerald-500/40 hover:bg-slate-800/80 transition-all group"
+            className="w-full flex items-center justify-between rounded-2xl border border-slate-200 bg-[#f8fafc] p-4 text-left hover:border-emerald-300 hover:bg-white transition-all group shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-500/20 p-2.5 text-emerald-400 group-hover:scale-105 transition-transform">
+              <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600 group-hover:scale-105 transition-transform">
                 <Download className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-slate-900">
                   Download Full JSON Blueprint
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   Raw data schemas for CI/CD or future module ingestion
                 </div>
               </div>
             </div>
-            <span className="text-xs text-emerald-400 font-semibold group-hover:translate-x-1 transition-transform">
+            <span className="text-xs text-emerald-600 font-semibold group-hover:translate-x-1 transition-transform">
               .json →
             </span>
           </button>
@@ -141,22 +141,22 @@ ${project.analysis.ai_recommendation.primary_advice}
           {/* Copy Markdown */}
           <button
             onClick={handleCopySummary}
-            className="w-full flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/80 p-4 text-left hover:border-purple-500/40 hover:bg-slate-800/80 transition-all group"
+            className="w-full flex items-center justify-between rounded-2xl border border-slate-200 bg-[#f8fafc] p-4 text-left hover:border-purple-300 hover:bg-white transition-all group shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-purple-500/20 p-2.5 text-purple-400 group-hover:scale-105 transition-transform">
+              <div className="rounded-xl bg-purple-50 p-2.5 text-purple-600 group-hover:scale-105 transition-transform">
                 {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
               </div>
               <div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-slate-900">
                   {copied ? "Copied to Clipboard!" : "Copy Markdown Summary"}
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   Formatted text for Slack, Jira, or email briefs
                 </div>
               </div>
             </div>
-            <span className="text-xs text-purple-400 font-semibold">
+            <span className="text-xs text-purple-600 font-semibold">
               {copied ? "Done" : "Copy"}
             </span>
           </button>
@@ -166,7 +166,7 @@ ${project.analysis.ai_recommendation.primary_advice}
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+            className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-colors"
           >
             Close
           </button>

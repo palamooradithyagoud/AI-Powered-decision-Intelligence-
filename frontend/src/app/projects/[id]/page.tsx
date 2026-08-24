@@ -99,14 +99,14 @@ export default function ProjectBlueprintPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-4">
           <div className="relative flex h-16 w-16 items-center justify-center">
-            <div className="h-12 w-12 rounded-full border-4 border-slate-800 border-t-blue-500 animate-spin" />
-            <Sparkles className="absolute h-5 w-5 text-blue-400" />
+            <div className="h-12 w-12 rounded-full border-4 border-slate-200 border-t-[#6366f1] animate-spin" />
+            <Sparkles className="absolute h-5 w-5 text-[#6366f1]" />
           </div>
-          <p className="text-sm font-semibold text-slate-300">Loading Project Blueprint...</p>
+          <p className="text-sm font-semibold text-slate-700">Loading Project Blueprint...</p>
         </div>
       </div>
     );
@@ -114,15 +114,15 @@ export default function ProjectBlueprintPage({
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
+      <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-          <div className="rounded-full bg-slate-800 p-4 text-rose-400">
+          <div className="rounded-full bg-rose-50 p-4 text-rose-500 border border-rose-200">
             <AlertOctagon className="h-8 w-8" />
           </div>
-          <h3 className="text-lg font-bold text-white">Project Not Found</h3>
-          <p className="text-xs text-slate-400">The requested project plan could not be retrieved.</p>
-          <Link href="/" className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white">
+          <h3 className="text-lg font-bold text-slate-900">Project Not Found</h3>
+          <p className="text-xs text-slate-500">The requested project plan could not be retrieved.</p>
+          <Link href="/" className="rounded-xl bg-[#6366f1] px-4 py-2 text-xs font-semibold text-white hover:bg-[#4f46e5]">
             Return to Dashboard
           </Link>
         </div>
@@ -147,7 +147,7 @@ export default function ProjectBlueprintPage({
   ];
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
       <Navbar />
 
       {/* Interactive Modals */}
@@ -169,25 +169,25 @@ export default function ProjectBlueprintPage({
         <div className="no-print flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-blue-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#6366f1] transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Manager Dashboard</span>
           </Link>
 
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-400 font-medium">
             Last Evaluated: {formatDate(project.updated_at)}
           </span>
         </div>
 
         {/* Master Project Executive Header Card */}
-        <div className="blueprint-card rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-[#0c1220] p-6 sm:p-8 shadow-2xl space-y-6">
+        <div className="blueprint-card rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             
             {/* Project Details */}
             <div className="space-y-2 flex-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
                   {project.name}
                 </h1>
                 <FeasibilityBadge
@@ -196,33 +196,33 @@ export default function ProjectBlueprintPage({
                   size="lg"
                 />
                 {analysis.engine && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-3 py-1 text-xs font-semibold text-blue-300 border border-blue-500/30">
-                    <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-[#4f46e5] border border-indigo-200">
+                    <Sparkles className="h-3.5 w-3.5 text-[#6366f1]" />
                     {analysis.engine}
                   </span>
                 )}
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
                 {project.description}
               </p>
 
               {/* Key Baseline Specs */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
                 <div className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-blue-400" />
-                  <span>Timeline: <strong className="text-slate-200">{project.expected_days} Days</strong></span>
+                  <Clock className="h-4 w-4 text-[#6366f1]" />
+                  <span>Timeline: <strong className="text-slate-800">{project.expected_days} Days</strong></span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-emerald-400" />
+                  <Users className="h-4 w-4 text-emerald-600" />
                   <span>
-                    Staff: <strong className="text-slate-200">{project.available_employees} Allocated</strong> vs {employee_analysis.total_recommended} Needed
+                    Staff: <strong className="text-slate-800">{project.available_employees} Allocated</strong> vs {employee_analysis.total_recommended} Needed
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-4 w-4 text-amber-400" />
+                  <ShieldCheck className="h-4 w-4 text-amber-600" />
                   <span>
-                    Feasibility Index: <strong className="text-white">{feasibility.feasibility_score}%</strong>
+                    Feasibility Index: <strong className="text-slate-900">{feasibility.feasibility_score}%</strong>
                   </span>
                 </div>
               </div>
@@ -233,18 +233,18 @@ export default function ProjectBlueprintPage({
               {/* What-If Simulation Sandbox */}
               <button
                 onClick={() => setIsSimulatorOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-950/40 px-3.5 py-2.5 text-xs font-bold text-purple-300 hover:bg-purple-900/50 hover:border-purple-500/60 transition-all shadow-md"
+                className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-xs font-bold text-[#4f46e5] hover:bg-indigo-100 transition-all shadow-sm"
               >
-                <Sliders className="h-4 w-4 text-purple-400" />
+                <Sliders className="h-4 w-4 text-[#6366f1]" />
                 <span>What-If Sandbox</span>
               </button>
 
               {/* Export Blueprint */}
               <button
                 onClick={() => setIsExportOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2.5 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white transition-all shadow-md"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"
               >
-                <Download className="h-4 w-4 text-slate-400" />
+                <Download className="h-4 w-4 text-slate-500" />
                 <span>Export Report</span>
               </button>
 
@@ -252,7 +252,7 @@ export default function ProjectBlueprintPage({
               <button
                 onClick={handleReanalyze}
                 disabled={isReanalyzing}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/30 hover:bg-blue-500 transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl bg-[#6366f1] px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-[#4f46e5] transition-all disabled:opacity-50"
               >
                 <RefreshCw className={cn("h-4 w-4", isReanalyzing && "animate-spin")} />
                 <span>{isReanalyzing ? "Re-analyzing..." : "Re-Analyze"}</span>
@@ -262,14 +262,14 @@ export default function ProjectBlueprintPage({
           </div>
 
           {/* Key Verdict Callout Banner */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
             <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+              <Sparkles className="h-5 w-5 text-[#6366f1] shrink-0 mt-0.5" />
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#4f46e5]">
                   AI Feasibility Summary & Verdict
                 </span>
-                <p className="text-xs sm:text-sm font-semibold text-slate-100 mt-0.5 leading-relaxed">
+                <p className="text-xs sm:text-sm font-semibold text-slate-800 mt-0.5 leading-relaxed">
                   {feasibility.key_verdict}
                 </p>
               </div>
@@ -278,8 +278,8 @@ export default function ProjectBlueprintPage({
         </div>
 
         {/* Tabbed Navigation Ribbon */}
-        <div className="no-print border-b border-slate-800 overflow-x-auto">
-          <div className="flex gap-1 min-w-max pb-2">
+        <div className="no-print border-b border-slate-200 overflow-x-auto">
+          <div className="flex gap-1.5 min-w-max pb-2">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -289,10 +289,10 @@ export default function ProjectBlueprintPage({
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition-all",
+                    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all",
                     isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30 font-extrabold"
-                      : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                      ? "bg-[#6366f1] text-white shadow-sm font-bold"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -301,7 +301,7 @@ export default function ProjectBlueprintPage({
                     <span
                       className={cn(
                         "rounded-full px-1.5 py-0.2 text-[10px]",
-                        isActive ? "bg-blue-800 text-white" : "bg-slate-800 text-slate-400"
+                        isActive ? "bg-indigo-800 text-white" : "bg-slate-100 text-slate-500"
                       )}
                     >
                       {tab.count}
@@ -318,38 +318,38 @@ export default function ProjectBlueprintPage({
           <div className="space-y-8">
             
             {/* Section A: Project Overview & Summary */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Lightbulb className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Lightbulb className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   A. Project Summary & Scope Definition
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4f46e5]">
                     What It Is
                   </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {summary.what_it_is}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
                     Problem It Solves
                   </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {summary.problem_solved}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
                     What Needs To Be Built
                   </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {summary.what_needs_to_be_built}
                   </p>
                 </div>
@@ -357,15 +357,15 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section B: Features (Must-Have vs Optional) */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-blue-400" />
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                  <Layers className="h-4 w-4 text-[#6366f1]" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                     B. Main Features Prioritization
                   </h3>
                 </div>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-500 font-medium">
                   {features.must_have.length} Must-Have • {features.optional.length} Optional
                 </span>
               </div>
@@ -373,23 +373,23 @@ export default function ProjectBlueprintPage({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Must Have */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-                    <CheckCircle2 className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     <span>Must-Have Features ({features.must_have.length})</span>
                   </div>
                   <div className="space-y-2.5">
                     {features.must_have.map((f, i) => (
                       <div
                         key={i}
-                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 space-y-1.5"
+                        className="rounded-xl border border-slate-200 bg-[#f8fafc] p-3.5 space-y-1.5 shadow-sm"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-white truncate">{f.name}</span>
-                          <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-blue-400 border border-slate-700">
+                          <span className="text-xs font-bold text-slate-900 truncate">{f.name}</span>
+                          <span className="rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-[#4f46e5] border border-indigo-100">
                             {f.complexity} Complexity
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
+                        <p className="text-xs text-slate-600 leading-relaxed">{f.description}</p>
                       </div>
                     ))}
                   </div>
@@ -397,23 +397,23 @@ export default function ProjectBlueprintPage({
 
                 {/* Optional */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
-                    <Sparkles className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
+                    <Sparkles className="h-4 w-4 text-amber-600" />
                     <span>Optional / Nice-to-Have Features ({features.optional.length})</span>
                   </div>
                   <div className="space-y-2.5">
                     {features.optional.map((f, i) => (
                       <div
                         key={i}
-                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 space-y-1.5"
+                        className="rounded-xl border border-slate-200 bg-[#f8fafc] p-3.5 space-y-1.5 shadow-sm"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-300 truncate">{f.name}</span>
-                          <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-slate-700">
+                          <span className="text-xs font-bold text-slate-700 truncate">{f.name}</span>
+                          <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
                             Optional (v1.1)
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed">{f.description}</p>
                       </div>
                     ))}
                   </div>
@@ -422,10 +422,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section C: Must-Need Requirements */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <CheckCircle2 className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <CheckCircle2 className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   C. Must-Need Technical & Functional Requirements
                 </h3>
               </div>
@@ -434,20 +434,20 @@ export default function ProjectBlueprintPage({
                 {must_need_requirements.map((req, i) => (
                   <div
                     key={i}
-                    className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2.5"
+                    className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-2.5 shadow-sm"
                   >
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-[#4f46e5] uppercase tracking-wider block">
                       {req.category}
                     </span>
-                    <ul className="space-y-1 text-xs text-slate-300">
+                    <ul className="space-y-1 text-xs text-slate-700">
                       {req.items.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] mt-1.5 shrink-0" />
                           <span>{item}</span>
                         </li>
                       ))}
                     </ul>
-                    <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                    <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
                       <strong>Rationale:</strong> {req.rationale}
                     </p>
                   </div>
@@ -456,10 +456,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section D: Employee Requirement Analysis */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Users className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Users className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   D. Employee Requirement & Team Composition Analysis
                 </h3>
               </div>
@@ -467,10 +467,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section E: Timeline Breakdown & Gantt */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Calendar className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Calendar className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   E. Phased Timeline & Execution Gantt Breakdown
                 </h3>
               </div>
@@ -478,10 +478,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Interactive Architecture Workflow Diagram */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Network className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Network className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   Interactive Execution Architecture Graph
                 </h3>
               </div>
@@ -489,10 +489,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section F: Tools & Technology Recommendations */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Cpu className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Cpu className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   F. Recommended Tools & Technology Stack
                 </h3>
               </div>
@@ -501,15 +501,15 @@ export default function ProjectBlueprintPage({
                 {tools_and_technologies.map((tech, i) => (
                   <div
                     key={i}
-                    className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2"
+                    className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-2 shadow-sm"
                   >
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                       {tech.layer}
                     </span>
-                    <div className="text-sm font-bold text-blue-400">
+                    <div className="text-sm font-bold text-[#4f46e5]">
                       {tech.technology}
                     </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed border-t border-slate-800/80 pt-2">
+                    <p className="text-[11px] text-slate-600 leading-relaxed border-t border-slate-200 pt-2">
                       {tech.rationale}
                     </p>
                   </div>
@@ -518,10 +518,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section G: Risk Analysis Matrix */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <ShieldCheck className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <ShieldCheck className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   G. Risk Analysis & Mitigation Matrix
                 </h3>
               </div>
@@ -529,10 +529,10 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section H: Feasibility Deep Dive */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <TrendingUp className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <TrendingUp className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   H. Project Feasibility Evaluation & 5-Dimension Radar
                 </h3>
               </div>
@@ -540,39 +540,39 @@ export default function ProjectBlueprintPage({
             </div>
 
             {/* Section I: AI Strategic Recommendations for Manager */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                <Sparkles className="h-4 w-4 text-blue-400" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Sparkles className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
                   I. Strategic AI Recommendations for the Manager
                 </h3>
               </div>
 
-              <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-950/40 via-slate-900/80 to-slate-900/80 p-5 space-y-4">
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5 space-y-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4f46e5]">
                     Primary Manager Guidance
                   </span>
-                  <h4 className="text-base sm:text-lg font-bold text-white mt-0.5">
+                  <h4 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
                     {ai_recommendation.primary_advice}
                   </h4>
                 </div>
 
                 {/* Actionable Steps */}
                 <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
                     Actionable Implementation Steps:
                   </span>
                   <div className="space-y-2">
                     {ai_recommendation.actionable_steps.map((step, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-2.5 rounded-lg bg-slate-950/70 p-3 border border-slate-800"
+                        className="flex items-start gap-2.5 rounded-xl bg-white p-3 border border-slate-200 shadow-sm"
                       >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-[#4f46e5]">
                           {i + 1}
                         </span>
-                        <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                           {step}
                         </p>
                       </div>
@@ -582,29 +582,29 @@ export default function ProjectBlueprintPage({
 
                 {/* Suggested Adjustments */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                  <div className="rounded-lg bg-slate-950/50 p-3 border border-slate-800">
+                  <div className="rounded-xl bg-white p-3 border border-slate-200 shadow-sm">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Headcount Delta Needed
                     </span>
-                    <div className="text-lg font-extrabold text-blue-400 mt-1">
+                    <div className="text-lg font-extrabold text-[#4f46e5] mt-1">
                       +{ai_recommendation.suggested_adjustments.recommended_additional_employees} Employees
                     </div>
                   </div>
 
-                  <div className="rounded-lg bg-slate-950/50 p-3 border border-slate-800">
+                  <div className="rounded-xl bg-white p-3 border border-slate-200 shadow-sm">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Timeline Buffer Extension
                     </span>
-                    <div className="text-lg font-extrabold text-blue-400 mt-1">
+                    <div className="text-lg font-extrabold text-[#4f46e5] mt-1">
                       +{ai_recommendation.suggested_adjustments.recommended_timeline_extension_days} Days
                     </div>
                   </div>
 
-                  <div className="rounded-lg bg-slate-950/50 p-3 border border-slate-800 sm:col-span-2">
+                  <div className="rounded-xl bg-white p-3 border border-slate-200 shadow-sm sm:col-span-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Key Technical Roles Needed
                     </span>
-                    <div className="text-xs text-slate-200 mt-1 truncate">
+                    <div className="text-xs text-slate-700 mt-1 truncate">
                       {ai_recommendation.suggested_adjustments.critical_skills_needed.join(", ")}
                     </div>
                   </div>
@@ -622,31 +622,31 @@ export default function ProjectBlueprintPage({
 
         {/* Tab 3: Summary */}
         {activeTab === "summary" && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-blue-400" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-[#6366f1]" />
               Project Summary & Core Purpose
             </h3>
             <div className="space-y-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-5 space-y-2">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-[#4f46e5]">
                   What This Project Is
                 </h5>
-                <p className="text-sm text-slate-200 leading-relaxed">{summary.what_it_is}</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{summary.what_it_is}</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+              <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-5 space-y-2">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-700">
                   Problem It Eliminates
                 </h5>
-                <p className="text-sm text-slate-200 leading-relaxed">{summary.problem_solved}</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{summary.problem_solved}</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-2">
-                <h5 className="text-xs font-bold uppercase tracking-wider text-purple-400">
+              <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-5 space-y-2">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-purple-700">
                   Scope of What Needs To Be Built
                 </h5>
-                <p className="text-sm text-slate-200 leading-relaxed">{summary.what_needs_to_be_built}</p>
+                <p className="text-sm text-slate-700 leading-relaxed">{summary.what_needs_to_be_built}</p>
               </div>
             </div>
           </div>
@@ -655,23 +655,23 @@ export default function ProjectBlueprintPage({
         {/* Tab 4: Features */}
         {activeTab === "features" && (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Layers className="h-5 w-5 text-blue-400" />
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="h-5 w-5 text-[#6366f1]" />
                 Must-Have Features ({features.must_have.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {features.must_have.map((f, i) => (
-                  <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2">
+                  <div key={i} className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-white text-sm">{f.name}</span>
-                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                      <span className="font-bold text-slate-900 text-sm">{f.name}</span>
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
                         {f.complexity} Complexity
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{f.description}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed">{f.description}</p>
                     {f.rationale && (
-                      <p className="text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
+                      <p className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5">
                         <strong>Rationale:</strong> {f.rationale}
                       </p>
                     )}
@@ -680,23 +680,23 @@ export default function ProjectBlueprintPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-600" />
                 Optional / Nice-to-Have Features ({features.optional.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {features.optional.map((f, i) => (
-                  <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2">
+                  <div key={i} className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4 space-y-2 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-slate-200 text-sm">{f.name}</span>
-                      <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                      <span className="font-bold text-slate-800 text-sm">{f.name}</span>
+                      <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
                         Optional
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{f.description}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed">{f.description}</p>
                     {f.rationale && (
-                      <p className="text-[11px] text-slate-500 border-t border-slate-800/80 pt-1.5">
+                      <p className="text-[11px] text-slate-400 border-t border-slate-200 pt-1.5">
                         <strong>Benefit:</strong> {f.rationale}
                       </p>
                     )}
@@ -709,26 +709,26 @@ export default function ProjectBlueprintPage({
 
         {/* Tab 5: Requirements */}
         {activeTab === "requirements" && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-blue-400" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-[#6366f1]" />
               Essential Technical & Functional Requirements
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {must_need_requirements.map((req, i) => (
-                <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-3">
-                  <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block">
+                <div key={i} className="rounded-xl border border-slate-200 bg-[#f8fafc] p-5 space-y-3 shadow-sm">
+                  <span className="text-xs font-bold text-[#4f46e5] uppercase tracking-wider block">
                     {req.category}
                   </span>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
+                  <ul className="space-y-1.5 text-xs text-slate-700">
                     {req.items.map((item, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
-                  <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
+                  <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-200">
                     <strong>Why Required:</strong> {req.rationale}
                   </p>
                 </div>
@@ -746,8 +746,8 @@ export default function ProjectBlueprintPage({
         {activeTab === "timeline" && (
           <div className="space-y-8">
             <GanttTimeline timeline={timeline_breakdown} />
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800 mb-4">
                 Interactive Execution Architecture Flow
               </h4>
               <WorkflowGraph phases={timeline_breakdown.phases} />
@@ -757,21 +757,21 @@ export default function ProjectBlueprintPage({
 
         {/* Tab 8: Tech Stack */}
         {activeTab === "tech" && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-blue-400" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-[#6366f1]" />
               Recommended Tools & Technologies (With Rationale)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {tools_and_technologies.map((tech, i) => (
-                <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-5 space-y-2">
+                <div key={i} className="rounded-xl border border-slate-200 bg-[#f8fafc] p-5 space-y-2 shadow-sm">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                     {tech.layer}
                   </span>
-                  <div className="text-base font-bold text-blue-400">
+                  <div className="text-base font-bold text-[#4f46e5]">
                     {tech.technology}
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed border-t border-slate-800/80 pt-2">
+                  <p className="text-xs text-slate-600 leading-relaxed border-t border-slate-200 pt-2">
                     {tech.rationale}
                   </p>
                 </div>
@@ -787,32 +787,32 @@ export default function ProjectBlueprintPage({
 
         {/* Tab 10: Recommendations */}
         {activeTab === "recommendations" && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-blue-400" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#6366f1]" />
               Strategic AI Recommendations for Manager
             </h3>
 
-            <div className="rounded-xl border border-blue-500/30 bg-blue-950/30 p-5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#4f46e5]">
                 Primary Executive Recommendation
               </span>
-              <p className="text-base font-bold text-white mt-1">
+              <p className="text-base font-bold text-slate-900 mt-1">
                 {ai_recommendation.primary_advice}
               </p>
             </div>
 
             <div className="space-y-3">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 Recommended Action Sequence:
               </h5>
               <div className="space-y-2.5">
                 {ai_recommendation.actionable_steps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                  <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#6366f1] text-xs font-bold text-white">
                       {i + 1}
                     </span>
-                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                       {step}
                     </p>
                   </div>

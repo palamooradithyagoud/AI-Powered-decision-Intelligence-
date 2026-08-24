@@ -62,15 +62,15 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Top Verdict Banner */}
-      <div className="rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-[#0c1220] p-6 sm:p-8 shadow-xl">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               Comprehensive AI Feasibility Analysis
             </span>
-            <h3 className="mt-1 text-2xl sm:text-3xl font-extrabold text-white">
+            <h3 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
               Can We Build It Realistically?
             </h3>
           </div>
@@ -83,14 +83,14 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
           />
         </div>
 
-        <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:p-5">
+        <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
           <div className="flex items-start gap-3">
-            <Award className="h-6 w-6 text-amber-400 shrink-0 mt-0.5" />
+            <Award className="h-6 w-6 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-[#4f46e5]">
                 Executive Feasibility Verdict
               </h5>
-              <p className="mt-1 text-sm sm:text-base font-semibold text-slate-100 leading-relaxed">
+              <p className="mt-1 text-sm sm:text-base font-semibold text-slate-900 leading-relaxed">
                 {key_verdict}
               </p>
             </div>
@@ -101,12 +101,12 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
       {/* Radar Chart + Dimension Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         {/* Radar Graphic */}
-        <div className="lg:col-span-6 rounded-xl border border-slate-800 bg-[#0c1220] p-5">
+        <div className="lg:col-span-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               5-Dimension Feasibility Radar
             </h5>
-            <span className="text-xs text-blue-400 font-semibold">
+            <span className="text-xs text-[#4f46e5] font-bold">
               Index: {feasibility_score}/100
             </span>
           </div>
@@ -114,22 +114,23 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
-                <PolarGrid stroke="#1e293b" />
-                <PolarAngleAxis dataKey="subject" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" />
+                <PolarGrid stroke="#e2e8f0" />
+                <PolarAngleAxis dataKey="subject" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#cbd5e1" />
                 <Radar
                   name="Feasibility Score"
                   dataKey="score"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
+                  stroke="#6366f1"
+                  fill="#6366f1"
                   fillOpacity={0.45}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
-                    borderRadius: "8px",
-                    color: "#f8fafc",
+                    backgroundColor: "#ffffff",
+                    borderColor: "#e2e8f0",
+                    borderRadius: "12px",
+                    color: "#0f172a",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                   }}
                 />
               </RadarChart>
@@ -147,18 +148,18 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
             return (
               <div
                 key={i}
-                className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 transition-all hover:bg-slate-800/40"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-lg bg-slate-800 p-1.5 text-blue-400">
+                    <div className="rounded-xl bg-indigo-50 p-2 text-[#6366f1]">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div>
-                      <span className="text-xs font-bold text-white">
+                      <span className="text-xs font-bold text-slate-900">
                         {d.title}
                       </span>
-                      <p className="text-[10px] text-slate-400">{d.desc}</p>
+                      <p className="text-[10px] text-slate-500">{d.desc}</p>
                     </div>
                   </div>
 
@@ -166,10 +167,10 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
                     <span
                       className={
                         isHigh
-                          ? "text-sm font-extrabold text-emerald-400"
+                          ? "text-sm font-bold text-emerald-600"
                           : isMid
-                          ? "text-sm font-extrabold text-amber-400"
-                          : "text-sm font-extrabold text-rose-400"
+                          ? "text-sm font-bold text-amber-600"
+                          : "text-sm font-bold text-rose-600"
                       }
                     >
                       {d.score}%
@@ -178,7 +179,7 @@ export default function FeasibilityRadar({ feasibility }: FeasibilityRadarProps)
                 </div>
 
                 {/* Progress bar */}
-                <div className="mt-2 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+                <div className="mt-2.5 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                   <div
                     style={{ width: `${d.score}%` }}
                     className={
