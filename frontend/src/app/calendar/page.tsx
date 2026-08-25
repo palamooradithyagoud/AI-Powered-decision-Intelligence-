@@ -821,23 +821,6 @@ function CalendarPageContent() {
                                 ))}
                               </div>
                             </div>
-
-                            {(() => {
-                              const validUrl = getValidMeetingUrl(m.location_or_link);
-                              if (!validUrl) return null;
-                              return (
-                                <a
-                                  href={validUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs"
-                                >
-                                  <Video className="h-3 w-3 flex-shrink-0" />
-                                  <span>{validUrl.includes("zoom") ? "Join Zoom" : validUrl.includes("meet.google") ? "Join Google Meet" : "Join Call"}</span>
-                                  <span className="text-[10px]">↗</span>
-                                </a>
-                              );
-                            })()}
                           </div>
                         </div>
                       );
@@ -923,27 +906,9 @@ function CalendarPageContent() {
                         )}
 
                         <div className="flex items-center justify-between text-xs pt-1">
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                              <Users className="h-3 w-3 text-slate-400" />
-                              <span>{meet.attendees.length} attendee{meet.attendees.length !== 1 ? "s" : ""}</span>
-                            </div>
-                            {(() => {
-                              const validUrl = getValidMeetingUrl(meet.location_or_link);
-                              if (!validUrl) return null;
-                              return (
-                                <a
-                                  href={validUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shadow-xs"
-                                >
-                                  <Video className="h-2.5 w-2.5 flex-shrink-0" />
-                                  <span>{validUrl.includes("zoom") ? "Zoom" : "Meet"}</span>
-                                  <span className="text-[9px]">↗</span>
-                                </a>
-                              );
-                            })()}
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                            <Users className="h-3 w-3 text-slate-400" />
+                            <span>{meet.attendees.length} attendee{meet.attendees.length !== 1 ? "s" : ""}</span>
                           </div>
 
                           <div className="flex items-center gap-1.5">
