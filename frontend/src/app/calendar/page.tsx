@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   CalendarRange,
   X,
-  ListFilter
+  ListFilter,
+  Video
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -359,7 +360,9 @@ function CalendarPageContent() {
       {/* Floating n8n Automation Toast */}
       {n8nToastMessage && (
         <div className="fixed bottom-6 right-6 z-50 max-w-md rounded-2xl bg-slate-900 text-white p-4 shadow-2xl border border-indigo-500/40 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#6366f1] text-white text-xs font-bold flex-shrink-0">⚡</span>
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#6366f1] text-white flex-shrink-0">
+            <Sparkles className="h-4 w-4" />
+          </span>
           <div className="text-xs min-w-0 flex-1">
             <div className="font-bold text-indigo-300">n8n Automation Triggered</div>
             <div className="text-slate-200 mt-0.5">{n8nToastMessage}</div>
@@ -827,9 +830,10 @@ function CalendarPageContent() {
                                   href={validUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs"
+                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs"
                                 >
-                                  <span>📹 {validUrl.includes("zoom") ? "Join Zoom" : validUrl.includes("meet.google") ? "Join Google Meet" : "Join Call"}</span>
+                                  <Video className="h-3 w-3 flex-shrink-0" />
+                                  <span>{validUrl.includes("zoom") ? "Join Zoom" : validUrl.includes("meet.google") ? "Join Google Meet" : "Join Call"}</span>
                                   <span className="text-[10px]">↗</span>
                                 </a>
                               );
@@ -934,7 +938,8 @@ function CalendarPageContent() {
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shadow-xs"
                                 >
-                                  <span>📹 {validUrl.includes("zoom") ? "Zoom" : "Meet"}</span>
+                                  <Video className="h-2.5 w-2.5 flex-shrink-0" />
+                                  <span>{validUrl.includes("zoom") ? "Zoom" : "Meet"}</span>
                                   <span className="text-[9px]">↗</span>
                                 </a>
                               );
@@ -1148,7 +1153,9 @@ function CalendarPageContent() {
               {/* n8n Automation Workflow Badge */}
               <div className="rounded-xl border border-indigo-100 bg-[#ede9fe]/30 p-2.5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#6366f1] text-white text-[11px] font-bold">⚡</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#6366f1] text-white flex-shrink-0">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
                   <div>
                     <div className="font-bold text-slate-800">n8n Email Workflow Trigger</div>
                     <div className="text-[10px] text-slate-500">Auto-generates & sends Project Assignment Reminder emails to attendees</div>
