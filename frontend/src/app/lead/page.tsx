@@ -12,9 +12,10 @@ import {
   runAIWorkAllocation, 
   confirmTaskAllocation, 
   fetchEmployees,
+  fetchActivities,
   EmployeeProfile
 } from "@/lib/api";
-import { Project, TaskItem, TaskStatus } from "@/types";
+import { Project, TaskItem, TaskStatus, ActivityLog } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { 
   Layers, 
@@ -43,18 +44,26 @@ import {
   CheckCheck,
   Eye,
   Info,
-  AlertOctagon
+  AlertOctagon,
+  TrendingUp,
+  Search
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 export default function ProjectLeadDashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [allEmployees, setAllEmployees] = useState<EmployeeProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter state
   const [selectedProjectId, setSelectedProjectId] = useState<string>("ALL");
+  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [leadTaskView, setLeadTaskView] = useState<"table" | "kanban">("kanban");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Rejection Modal State
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -72,19 +81,20 @@ export default function ProjectLeadDashboard() {
   const [allocationSuccessMessage, setAllocationSuccessMessage] = useState<string | null>(null);
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const [projs, taskList, empList] = await Promise.all([
+      const [projs, taskList, empList, actList] = await Promise.all([
         fetchProjects(),
         fetchTasks({
           project_id: selectedProjectId !== "ALL" ? selectedProjectId : undefined,
           status: statusFilter !== "ALL" ? statusFilter : undefined,
         }),
         fetchEmployees().catch(() => []),
+        fetchActivities({ limit: 15 }).catch(() => [])
       ]);
       setProjects(projs);
       setTasks(taskList);
       setAllEmployees(empList);
+      setActivities(actList);
     } catch (err) {
       console.error("Error loading lead data:", err);
     } finally {
@@ -94,6 +104,11 @@ export default function ProjectLeadDashboard() {
 
   useEffect(() => {
     loadData();
+    // Auto-polling every 4 seconds for real-time synchronization with employees
+    const interval = setInterval(() => {
+      loadData();
+    }, 4000);
+    return () => clearInterval(interval);
   }, [selectedProjectId, statusFilter]);
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
@@ -102,6 +117,7 @@ export default function ProjectLeadDashboard() {
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
       );
+      loadData();
     } catch (err) {
       alert("Failed to update status");
     }
@@ -222,6 +238,19 @@ export default function ProjectLeadDashboard() {
     }
   };
 
+  // Filter tasks by Employee & Search
+  const filteredTasks = tasks.filter((t) => {
+    const matchesEmp = selectedEmployeeFilter === "ALL" || 
+      t.assigned_emp_id === selectedEmployeeFilter || 
+      t.assigned_to.toLowerCase().includes(selectedEmployeeFilter.toLowerCase());
+    const matchesSearch = !searchQuery.trim() || 
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.assigned_to.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.phase_name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesEmp && matchesSearch;
+  });
+
   // Metrics
   const pendingReviewProjects = projects.filter(
     (p) => p.lead_status === "Pending Review" || p.status === "Pending Lead Review"
@@ -250,43 +279,36 @@ export default function ProjectLeadDashboard() {
                   <ThumbsDown className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Reject Inbound Project</h3>
-                  <p className="text-xs text-slate-500">Provide structured refinement feedback for the Manager</p>
+                  <h3 className="text-lg font-bold text-slate-900">Reject Project Feasibility</h3>
+                  <p className="text-xs text-slate-500">Provide required parameter refinements for Manager review.</p>
                 </div>
               </div>
               <button
                 onClick={() => setRejectModalOpen(false)}
-                className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-xl hover:bg-slate-100"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Project</span>
+              <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Project</span>
                 <h4 className="text-sm font-bold text-slate-900">{projectToReject.name}</h4>
-                <div className="flex items-center gap-3 text-xs text-slate-500 pt-1">
-                  <span>Timeline: <strong>{projectToReject.expected_days}d</strong></span>
-                  <span>•</span>
-                  <span>Staff: <strong>{projectToReject.available_employees} Allocated</strong></span>
-                </div>
+                <p className="text-xs text-slate-500 line-clamp-2">{projectToReject.description}</p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 block">
-                  Lead Refinement Feedback & Rejection Reason <span className="text-rose-500">*</span>
+                  Rejection Reason & Required Refinements:
                 </label>
                 <textarea
+                  rows={4}
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={4}
-                  placeholder="Explain why this project cannot proceed as scoped (e.g. unrealistic timeline, skill shortage, missing architecture prerequisites)..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white p-3.5 text-xs text-slate-900 placeholder-slate-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                  placeholder="Explain why this project is not feasible and what adjustments are needed..."
+                  className="w-full rounded-2xl border border-slate-200 p-3.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent font-medium"
                 />
-                <p className="text-[11px] text-slate-400 leading-tight">
-                  This structured feedback will be returned to the Manager dashboard with actionable suggestions.
-                </p>
               </div>
             </div>
 
@@ -294,210 +316,210 @@ export default function ProjectLeadDashboard() {
               <button
                 type="button"
                 onClick={() => setRejectModalOpen(false)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={handleSubmitReject}
                 disabled={isSubmittingAction}
-                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-rose-700 transition-all disabled:opacity-50"
+                onClick={handleSubmitReject}
+                className="rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white hover:bg-rose-700 shadow-md transition-all disabled:opacity-50"
               >
-                {isSubmittingAction ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Rejecting...</span>
-                  </>
-                ) : (
-                  <>
-                    <ThumbsDown className="h-3.5 w-3.5" />
-                    <span>Confirm Rejection & Return</span>
-                  </>
-                )}
+                {isSubmittingAction ? "Submitting..." : "Submit Project Rejection"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* AI Smart Work Allocation & Team Assignment Suite Modal */}
+      {/* AI Smart Work Allocation Suite Modal */}
       {aiAllocationModalOpen && activeAllocationProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-5xl max-h-[90vh] flex flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl my-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-5xl max-h-[90vh] flex flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5 shrink-0 bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/50 rounded-t-3xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20">
-                  <Sparkles className="h-6 w-6" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-md">
+                  <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 text-[10px] uppercase tracking-wider">
-                      AI Multi-Factor Engine
+                    <h2 className="text-lg font-black tracking-tight">AI Smart Work Allocation Suite</h2>
+                    <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold">
+                      Multi-Factor Optimization
                     </span>
-                    <span className="text-xs text-slate-400 font-medium">40-Employee Dataset Match</span>
                   </div>
-                  <h2 className="text-xl font-bold text-slate-900 mt-0.5">
-                    AI Smart Work Allocation: {activeAllocationProject.name}
-                  </h2>
+                  <p className="text-xs text-slate-300">
+                    Project: <strong className="text-white">{activeAllocationProject.name}</strong> • Intelligent skill & bandwidth matching across 40 employees
+                  </p>
                 </div>
               </div>
 
               <button
                 onClick={() => setAiAllocationModalOpen(false)}
-                className="rounded-2xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Modal Subheader & Engine Weights Banner */}
-            <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 shrink-0 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-slate-600">
-                <Zap className="h-4 w-4 text-[#6366f1]" />
-                <span className="font-semibold">Evaluation Factors:</span>
-                <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-indigo-700">40% Skill Match</span>
-                <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-blue-700">30% Bandwidth</span>
-                <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-purple-700">20% Experience</span>
-                <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-bold text-emerald-700">10% Availability</span>
-              </div>
-
-              <div className="text-slate-500 font-medium">
-                {allocatedTasks.length} Deliverables Across {activeAllocationProject.analysis?.timeline_breakdown?.phases?.length || 4} Phases
-              </div>
-            </div>
-
-            {/* Modal Body - Deliverables List */}
-            <div className="p-6 overflow-y-auto space-y-5 flex-1 bg-[#f8fafc]/50">
-              {allocationSuccessMessage && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex items-center gap-2.5 animate-in fade-in">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                  <span>{allocationSuccessMessage}</span>
-                </div>
-              )}
-
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {isAllocating ? (
-                <div className="py-20 text-center space-y-4">
-                  <div className="relative flex h-16 w-16 mx-auto items-center justify-center">
-                    <div className="h-14 w-14 rounded-full border-4 border-slate-200 border-t-[#6366f1] animate-spin" />
-                    <Sparkles className="absolute h-6 w-6 text-[#6366f1]" />
-                  </div>
+                <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#6366f1] border-t-transparent" />
                   <div className="space-y-1">
-                    <h4 className="text-base font-bold text-slate-800">
-                      Evaluating 40 Corporate Employees...
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto">
-                      Matching tech stack competencies, available bandwidth headroom, previous project experience, and availability levels for optimal workload distribution.
+                    <h3 className="text-base font-bold text-slate-900">Running AI Multi-Factor Matching Algorithm</h3>
+                    <p className="text-xs text-slate-500 max-w-md">
+                      Analyzing technical skill tags, seniority, previous project domain experience, and bandwidth headroom across all 40 corporate employees...
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {allocatedTasks.map((task, idx) => {
-                    const matchScore = task.match_score || 94;
-                    const scoreColor =
-                      matchScore >= 90
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : matchScore >= 75
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200";
-
-                    return (
-                      <div
-                        key={task.id || idx}
-                        className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm space-y-3.5 hover:border-indigo-300 transition-all"
-                      >
-                        {/* Task Header & Match Pill */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="rounded-md bg-indigo-50 text-[#4f46e5] px-2 py-0.5 text-[10px] font-bold border border-indigo-100">
-                                {task.phase_name}
-                              </span>
-                              <span className="text-[11px] font-semibold text-slate-400">
-                                Due Day {task.due_day}
-                              </span>
-                            </div>
-                            <h4 className="text-sm font-bold text-slate-900 mt-1">{task.title}</h4>
-                          </div>
-
-                          <div className="flex items-center gap-2 self-start sm:self-auto">
-                            <span className={cn("rounded-full px-3 py-1 text-xs font-black border shadow-xs flex items-center gap-1", scoreColor)}>
-                              <Sparkles className="h-3.5 w-3.5" />
-                              <span>{matchScore}% Match</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Assignee & AI Rationale Card */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                          {/* Worker Assignment Selector */}
-                          <div className="md:col-span-5 space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                              Assigned Worker (Auto-Matched):
-                            </label>
-                            <div className="relative">
-                              <select
-                                value={task.assigned_emp_id || (allEmployees.find((e) => e.name === task.assigned_to)?.id || "emp_03")}
-                                onChange={(e) => handleAssigneeOverride(idx, e.target.value)}
-                                className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-3.5 pr-8 text-xs font-bold text-slate-800 focus:border-[#6366f1] focus:bg-white focus:outline-none cursor-pointer"
-                              >
-                                {allEmployees.map((emp) => (
-                                  <option key={emp.id} value={emp.id}>
-                                    {emp.id}: {emp.name} — {emp.designation} ({emp.workload}% load)
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                            </div>
-                          </div>
-
-                          {/* AI Rationale Box */}
-                          <div className="md:col-span-7 rounded-xl bg-slate-50 border border-slate-200/80 p-3 text-xs space-y-1">
-                            <div className="flex items-center gap-1.5 text-indigo-700 font-bold text-[10px] uppercase">
-                              <Info className="h-3.5 w-3.5" />
-                              <span>AI Allocation Rationale</span>
-                            </div>
-                            <p className="text-slate-600 text-[11px] leading-relaxed">
-                              {task.ai_rationale ||
-                                `Optimal technical alignment in required stack, positive headroom bandwidth, and matching past project experience.`}
-                            </p>
-                          </div>
-                        </div>
+                <>
+                  {/* Allocation AI Summary */}
+                  {allocationSummary && (
+                    <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-indigo-900">
+                        <Cpu className="h-4 w-4 text-indigo-600" />
+                        <span>AI Optimization Analysis:</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <p className="text-xs text-indigo-950 leading-relaxed font-medium">
+                        {allocationSummary}
+                      </p>
+                    </div>
+                  )}
+
+                  {allocationSuccessMessage && (
+                    <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 animate-in fade-in">
+                      {allocationSuccessMessage}
+                    </div>
+                  )}
+
+                  {/* Tasks Allocation Table */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Generated Deliverables & Skill-Matched Workers ({allocatedTasks.length})
+                      </h3>
+                      <span className="text-xs text-slate-500">
+                        Lead override is enabled for all task assignments.
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase text-[10px] font-bold">
+                          <tr>
+                            <th className="px-4 py-3">Phase & Deliverable</th>
+                            <th className="px-4 py-3">AI Matched Worker</th>
+                            <th className="px-4 py-3">Match Score</th>
+                            <th className="px-4 py-3">Priority / Due</th>
+                            <th className="px-4 py-3">Lead Assignee Override</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {allocatedTasks.map((t, idx) => {
+                            const match = t.match_score || 94;
+                            return (
+                              <tr key={t.id || idx} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3.5 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="rounded-md bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 text-[10px] font-bold">
+                                      {t.phase_name}
+                                    </span>
+                                    <strong className="text-slate-900 text-xs font-bold">{t.title}</strong>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 line-clamp-1">{t.description}</p>
+                                  {t.ai_rationale && (
+                                    <span className="text-[10px] text-indigo-600 block bg-indigo-50/50 rounded px-2 py-0.5 mt-0.5">
+                                      💡 {t.ai_rationale}
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-6 w-6 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">
+                                      {t.assigned_to.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <div className="font-bold text-slate-900 text-xs">{t.assigned_to}</div>
+                                      <div className="text-[10px] text-slate-500">{t.assigned_role}</div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold">
+                                    <Sparkles className="h-3 w-3 text-emerald-600" />
+                                    {match}%
+                                  </span>
+                                </td>
+
+                                <td className="px-4 py-3.5 whitespace-nowrap space-y-1">
+                                  <span className={cn(
+                                    "rounded px-2 py-0.5 text-[9px] font-bold uppercase",
+                                    t.priority === "High" ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  )}>
+                                    {t.priority}
+                                  </span>
+                                  <div className="text-[10px] text-slate-500">Day {t.due_day}</div>
+                                </td>
+
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  <select
+                                    value={t.assigned_emp_id || ""}
+                                    onChange={(e) => handleAssigneeOverride(idx, e.target.value)}
+                                    className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                  >
+                                    <option value="" disabled>Select Employee</option>
+                                    {allEmployees.map((emp) => (
+                                      <option key={emp.id} value={emp.id}>
+                                        {emp.name} ({emp.designation})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
-            {/* Modal Footer Bar */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-white rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
               <button
                 type="button"
-                onClick={() => handleOpenAIAllocation(activeAllocationProject)}
-                disabled={isAllocating || isSavingAllocation}
-                className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-bold text-[#4f46e5] hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                onClick={() => setAiAllocationModalOpen(false)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
               >
-                <RefreshCw className={cn("h-3.5 w-3.5", isAllocating && "animate-spin")} />
-                <span>Re-Run AI Allocation</span>
+                Cancel
               </button>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setAiAllocationModalOpen(false)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+                  disabled={isAllocating || isSavingAllocation}
+                  onClick={() => handleOpenAIAllocation(activeAllocationProject)}
+                  className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
                 >
-                  Cancel
+                  <RefreshCw className={cn("h-3.5 w-3.5", isAllocating && "animate-spin")} />
+                  <span>Re-run AI Optimizer</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={handleConfirmAndDispatch}
                   disabled={isAllocating || isSavingAllocation || allocatedTasks.length === 0}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-indigo-600 to-purple-600 px-6 py-2.5 text-xs font-extrabold text-white shadow-md hover:from-[#4f46e5] hover:to-purple-700 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-6 py-2.5 text-xs font-extrabold text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                 >
                   {isSavingAllocation ? (
                     <>
@@ -518,6 +540,7 @@ export default function ProjectLeadDashboard() {
         </div>
       )}
 
+      {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Welcome Header */}
@@ -532,14 +555,18 @@ export default function ProjectLeadDashboard() {
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500">
-              Welcome back, <strong className="text-slate-800">{user?.name || "Ishita Rao"}</strong> • Review inbound manager project requests, run multi-factor AI worker allocation, and coordinate team execution.
+              Welcome back, <strong className="text-slate-800">{user?.name || "Ishita Rao"}</strong> • Live multi-role sync with all 40 employees and Project Manager (Arjun Reddy).
             </p>
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold text-emerald-700 shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Real-Time Sync Active</span>
+            </div>
             <button
               onClick={loadData}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               <span>Refresh Pipeline</span>
@@ -673,7 +700,7 @@ export default function ProjectLeadDashboard() {
                         <button
                           onClick={() => handleOpenRejectModal(p)}
                           disabled={isSubmittingAction}
-                          className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <ThumbsDown className="h-3.5 w-3.5" />
                           <span>Reject Project</span>
@@ -682,7 +709,7 @@ export default function ProjectLeadDashboard() {
                         <button
                           onClick={() => handleAcceptProject(p)}
                           disabled={isSubmittingAction}
-                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                         >
                           <Check className="h-4 w-4" />
                           <span>✅ Accept & Allocate Team</span>
@@ -697,7 +724,75 @@ export default function ProjectLeadDashboard() {
           </div>
         )}
 
-        {/* 2. Lead Projects Overview Strip & AI Allocation Triggers */}
+        {/* 2. LIVE EMPLOYEE WORK UPDATES & ACTIVITY STREAM WIDGET */}
+        <div className="rounded-3xl border border-indigo-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                Live Employee Work Updates & Real-Time Sync Stream
+              </h3>
+            </div>
+            <span className="text-xs text-indigo-700 font-semibold bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl">
+              {activities.length} Recent Team Updates
+            </span>
+          </div>
+
+          {activities.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+              No recent employee updates logged yet. When employees update deliverables, events will stream here live.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {activities.slice(0, 6).map((act) => {
+                const isCompleted = act.event_type === "task_completed";
+                const isStarted = act.event_type === "task_started";
+                const isClaimed = act.event_type === "task_claimed";
+                return (
+                  <div
+                    key={act.id}
+                    className={cn(
+                      "rounded-2xl border p-3.5 space-y-2 transition-all shadow-2xs flex flex-col justify-between",
+                      isCompleted ? "border-emerald-200 bg-emerald-50/40" :
+                      isStarted ? "border-indigo-200 bg-indigo-50/40" :
+                      isClaimed ? "border-purple-200 bg-purple-50/40" :
+                      "border-slate-200 bg-slate-50/60"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={cn(
+                          "rounded-md px-2 py-0.5 text-[9px] font-bold uppercase border",
+                          isCompleted ? "bg-emerald-100 text-emerald-800 border-emerald-300" :
+                          isStarted ? "bg-indigo-100 text-indigo-800 border-indigo-300" :
+                          "bg-slate-200 text-slate-700 border-slate-300"
+                        )}>
+                          {isCompleted ? "COMPLETED ✅" : isStarted ? "STARTED ⚡" : isClaimed ? "CLAIMED 📌" : "STATUS CHANGE"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {act.timestamp ? formatDate(act.timestamp) : "Recently"}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-900 leading-snug">{act.message}</h4>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="truncate font-semibold text-slate-700 max-w-[140px]">{act.project_name}</span>
+                      {act.employee_name && (
+                        <span className="font-bold text-indigo-700 truncate max-w-[110px]">{act.employee_name}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 3. Lead Projects Overview Strip & AI Allocation Triggers */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
@@ -747,62 +842,42 @@ export default function ProjectLeadDashboard() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                            <Check className="h-3 w-3 text-emerald-600" />
-                            Accepted & In Execution
+                            ✓ Accepted & Active
                           </span>
                         )}
-                        <h5 className="font-bold text-slate-900 text-sm truncate">{p.name}</h5>
+                        <h4 className="font-bold text-slate-900 text-sm leading-snug">{p.name}</h4>
                       </div>
-                      <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-[#4f46e5] border border-indigo-200 shrink-0">
-                        {p.expected_days}d
-                      </span>
                     </div>
 
                     <p className="text-xs text-slate-500 line-clamp-2">{p.description}</p>
 
-                    <div>
-                      <div className="flex justify-between text-[11px] text-slate-500 mb-1">
-                        <span>Sprint Progress</span>
-                        <strong className="text-[#4f46e5]">{rate}%</strong>
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                        <span>Sprint Deliverables Progress:</span>
+                        <strong className="text-slate-900">{done}/{projTasks.length} ({rate}%)</strong>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          style={{ width: `${rate}%` }}
-                          className="h-full bg-gradient-to-r from-[#6366f1] to-purple-500 rounded-full"
-                        />
+                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-[#6366f1] h-1.5 rounded-full transition-all duration-300" style={{ width: `${rate}%` }} />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100">
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     <button
                       onClick={() => handleOpenAIAllocation(p)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 px-2.5 py-1 text-[11px] font-bold text-[#4f46e5] hover:bg-indigo-100 transition-colors"
+                      className="flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer"
                     >
-                      <Sparkles className="h-3 w-3" />
-                      <span>AI Allocation</span>
+                      <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>{p.ai_work_allocated ? "Re-allocate Team" : "AI Work Allocation"}</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedProjectId(selectedProjectId === p.id ? "ALL" : p.id)}
-                        className={cn(
-                          "text-[11px] font-bold px-2 py-1 rounded-md transition-colors",
-                          selectedProjectId === p.id 
-                            ? "bg-slate-800 text-white" 
-                            : "text-slate-600 hover:bg-slate-100"
-                        )}
-                      >
-                        {selectedProjectId === p.id ? "Filtering" : "Filter Tasks"}
-                      </button>
-                      <Link
-                        href={`/projects/${p.id}`}
-                        className="text-xs font-semibold text-[#6366f1] hover:text-[#4f46e5] flex items-center gap-0.5"
-                      >
-                        <span>Blueprint</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </div>
+                    <Link
+                      href={`/projects/${p.id}`}
+                      className="text-xs font-semibold text-[#6366f1] hover:text-[#4f46e5] flex items-center gap-0.5"
+                    >
+                      <span>Blueprint</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </div>
                 </div>
               );
@@ -810,157 +885,413 @@ export default function ProjectLeadDashboard() {
           </div>
         </div>
 
-        {/* 3. Sprint Task Board & Filter Bar */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-[#6366f1]" />
-              <h3 className="text-base font-bold text-slate-900">
-                Sprint Deliverables & Assigned Workers ({tasks.length})
-              </h3>
+        {/* 4. Sprint Task Board & Filter Bar (Dual View: Table or Kanban) */}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-[#6366f1]" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Sprint Deliverables & Employee Kanban Board ({filteredTasks.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Inspect deliverable progress across any project or specific employee board.
+              </p>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-slate-500 font-semibold mr-1">Status:</span>
-              <button
-                onClick={() => setStatusFilter("ALL")}
-                className={cn(
-                  "rounded-xl px-2.5 py-1 font-semibold transition-all",
-                  statusFilter === "ALL" 
-                    ? "bg-[#6366f1] text-white shadow-sm" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-                )}
-              >
-                All ({tasks.length})
-              </button>
-              <button
-                onClick={() => setStatusFilter("To Do")}
-                className={cn(
-                  "rounded-xl px-2.5 py-1 font-semibold transition-all",
-                  statusFilter === "To Do" 
-                    ? "bg-amber-600 text-white" 
-                    : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                )}
-              >
-                To Do ({todoTasks})
-              </button>
-              <button
-                onClick={() => setStatusFilter("In Progress")}
-                className={cn(
-                  "rounded-xl px-2.5 py-1 font-semibold transition-all",
-                  statusFilter === "In Progress" 
-                    ? "bg-indigo-600 text-white" 
-                    : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
-                )}
-              >
-                In Progress ({inProgressTasks})
-              </button>
-              <button
-                onClick={() => setStatusFilter("Completed")}
-                className={cn(
-                  "rounded-xl px-2.5 py-1 font-semibold transition-all",
-                  statusFilter === "Completed" 
-                    ? "bg-emerald-600 text-white" 
-                    : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                )}
-              >
-                Completed ({completedTasks})
-              </button>
+            {/* View Mode & Filter Controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* View Switcher */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                <button
+                  onClick={() => setLeadTaskView("kanban")}
+                  className={cn(
+                    "px-3 py-1 rounded-lg font-bold transition-all cursor-pointer",
+                    leadTaskView === "kanban"
+                      ? "bg-white text-indigo-700 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  Kanban Board
+                </button>
+                <button
+                  onClick={() => setLeadTaskView("table")}
+                  className={cn(
+                    "px-3 py-1 rounded-lg font-bold transition-all cursor-pointer",
+                    leadTaskView === "table"
+                      ? "bg-white text-indigo-700 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  Table View
+                </button>
+              </div>
+
+              {/* Status Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => setStatusFilter("ALL")}
+                  className={cn(
+                    "rounded-xl px-2.5 py-1 font-semibold transition-all cursor-pointer",
+                    statusFilter === "ALL" 
+                      ? "bg-[#6366f1] text-white shadow-sm font-bold" 
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                  )}
+                >
+                  All ({tasks.length})
+                </button>
+                <button
+                  onClick={() => setStatusFilter("To Do")}
+                  className={cn(
+                    "rounded-xl px-2.5 py-1 font-semibold transition-all cursor-pointer",
+                    statusFilter === "To Do" 
+                      ? "bg-amber-600 text-white font-bold" 
+                      : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                  )}
+                >
+                  To Do ({todoTasks})
+                </button>
+                <button
+                  onClick={() => setStatusFilter("In Progress")}
+                  className={cn(
+                    "rounded-xl px-2.5 py-1 font-semibold transition-all cursor-pointer",
+                    statusFilter === "In Progress" 
+                      ? "bg-indigo-600 text-white font-bold" 
+                      : "bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                  )}
+                >
+                  In Progress ({inProgressTasks})
+                </button>
+                <button
+                  onClick={() => setStatusFilter("Completed")}
+                  className={cn(
+                    "rounded-xl px-2.5 py-1 font-semibold transition-all cursor-pointer",
+                    statusFilter === "Completed" 
+                      ? "bg-emerald-600 text-white font-bold" 
+                      : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                  )}
+                >
+                  Completed ({completedTasks})
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Task Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="border-b border-slate-200 bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-semibold">
-                <tr>
-                  <th className="px-4 py-3">Deliverable / Task</th>
-                  <th className="px-4 py-3">Project & Phase</th>
-                  <th className="px-4 py-3">Assigned Worker</th>
-                  <th className="px-4 py-3">Match Score</th>
-                  <th className="px-4 py-3">Priority</th>
-                  <th className="px-4 py-3">Due Day</th>
-                  <th className="px-4 py-3 text-right">Status Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {tasks.map((task) => {
-                  const match = task.match_score || 94;
-                  return (
-                    <tr key={task.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3.5">
-                        <div className="font-bold text-slate-900 text-xs sm:text-sm">{task.title}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{task.description}</div>
-                      </td>
+          {/* Employee & Project Dropdown Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+              {/* Project Filter */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700">
+                <FolderKanban className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+                >
+                  <option value="ALL">All Projects</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="font-semibold text-slate-900">{task.project_name}</div>
-                        <span className="text-[10px] text-[#4f46e5] bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
-                          {task.phase_name}
-                        </span>
-                      </td>
+              {/* Employee Filter */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700">
+                <Users className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                <select
+                  value={selectedEmployeeFilter}
+                  onChange={(e) => setSelectedEmployeeFilter(e.target.value)}
+                  className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+                >
+                  <option value="ALL">All 40 Employees</option>
+                  {allEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.designation})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">
+              {/* Search Bar */}
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search deliverables by name or worker..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <span className="text-xs text-slate-500 font-medium">
+              Showing <strong className="text-slate-800">{filteredTasks.length}</strong> tasks
+            </span>
+          </div>
+
+          {/* VIEW A: KANBAN BOARD */}
+          {leadTaskView === "kanban" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+              {/* TO DO COLUMN */}
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4 space-y-4 min-h-[450px] flex flex-col shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                    To Do
+                  </span>
+                  <span className="rounded-full bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 text-xs font-bold">
+                    {filteredTasks.filter(t => t.status === "To Do").length}
+                  </span>
+                </div>
+                <div className="space-y-3 flex-1 flex flex-col justify-start">
+                  {filteredTasks.filter(t => t.status === "To Do").map(task => (
+                    <div key={task.id} className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm space-y-3 hover:border-indigo-300 transition-all">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                            {task.phase_name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">{task.project_name}</span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{task.title}</h4>
+                        <p className="text-xs text-slate-500 line-clamp-2">{task.description}</p>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-5 w-5 rounded-full bg-indigo-600 text-white font-bold text-[9px] flex items-center justify-center">
                             {task.assigned_to.charAt(0)}
                           </div>
                           <div>
-                            <div className="text-slate-900 font-bold text-xs">{task.assigned_to}</div>
-                            <div className="text-[10px] text-slate-500">{task.assigned_role}</div>
+                            <span className="text-slate-800 font-bold text-[11px] truncate max-w-[90px] block">{task.assigned_to}</span>
+                            <span className="text-[9px] text-slate-400 block">{task.assigned_role}</span>
                           </div>
                         </div>
-                      </td>
-
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold">
-                          <Sparkles className="h-3 w-3 text-emerald-600" />
-                          {match}%
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
-                            task.priority === "High"
-                              ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                          )}
-                        >
-                          {task.priority}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">
-                        Day {task.due_day}
-                      </td>
-
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <select
                           value={task.status}
                           onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
-                          className={cn(
-                            "rounded-xl px-2.5 py-1 text-xs font-semibold focus:outline-none border cursor-pointer shadow-sm",
-                            task.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                              : task.status === "In Progress"
-                              ? "bg-indigo-50 text-indigo-700 border-indigo-300"
-                              : "bg-white text-slate-700 border-slate-300"
-                          )}
+                          className="text-[11px] font-semibold bg-slate-50 border border-slate-200 text-slate-700 rounded-lg py-1 px-1.5 focus:outline-none cursor-pointer"
                         >
                           <option value="To Do">To Do</option>
                           <option value="In Progress">In Progress</option>
                           <option value="Completed">Completed</option>
                         </select>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTasks.filter(t => t.status === "To Do").length === 0 && (
+                    <div className="p-8 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-400 flex-1 flex items-center justify-center">
+                      No deliverables in To Do
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* IN PROGRESS COLUMN */}
+              <div className="bg-indigo-50/40 border border-indigo-200 rounded-3xl p-4 space-y-4 min-h-[450px] flex flex-col shadow-xs">
+                <div className="flex items-center justify-between border-b border-indigo-100 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#6366f1] animate-ping" />
+                    In Progress
+                  </span>
+                  <span className="rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300 px-2 py-0.5 text-xs font-bold">
+                    {filteredTasks.filter(t => t.status === "In Progress").length}
+                  </span>
+                </div>
+                <div className="space-y-3 flex-1 flex flex-col justify-start">
+                  {filteredTasks.filter(t => t.status === "In Progress").map(task => (
+                    <div key={task.id} className="bg-white border-2 border-indigo-200 p-4 rounded-2xl shadow-sm space-y-3 hover:border-indigo-400 transition-all">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                            {task.phase_name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">{task.project_name}</span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">{task.title}</h4>
+                        <p className="text-xs text-slate-500 line-clamp-2">{task.description}</p>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-5 w-5 rounded-full bg-indigo-600 text-white font-bold text-[9px] flex items-center justify-center">
+                            {task.assigned_to.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="text-slate-800 font-bold text-[11px] truncate max-w-[90px] block">{task.assigned_to}</span>
+                            <span className="text-[9px] text-slate-400 block">{task.assigned_role}</span>
+                          </div>
+                        </div>
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
+                          className="text-[11px] font-bold bg-indigo-50 border border-indigo-300 text-indigo-700 rounded-lg py-1 px-1.5 focus:outline-none cursor-pointer"
+                        >
+                          <option value="To Do">To Do</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTasks.filter(t => t.status === "In Progress").length === 0 && (
+                    <div className="p-8 border border-dashed border-indigo-200 rounded-2xl text-center text-xs text-slate-400 flex-1 flex items-center justify-center">
+                      No active tasks in progress
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* COMPLETED COLUMN */}
+              <div className="bg-emerald-50/40 border border-emerald-200 rounded-3xl p-4 space-y-4 min-h-[450px] flex flex-col shadow-xs">
+                <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                    Completed
+                  </span>
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-bold">
+                    {filteredTasks.filter(t => t.status === "Completed").length}
+                  </span>
+                </div>
+                <div className="space-y-3 flex-1 flex flex-col justify-start">
+                  {filteredTasks.filter(t => t.status === "Completed").map(task => (
+                    <div key={task.id} className="bg-white border-2 border-emerald-300 p-4 rounded-2xl shadow-sm space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            ✓ {task.phase_name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">{task.project_name}</span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-700 line-through leading-snug">{task.title}</h4>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-5 w-5 rounded-full bg-emerald-600 text-white font-bold text-[9px] flex items-center justify-center">
+                            {task.assigned_to.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="text-slate-800 font-bold text-[11px] truncate max-w-[90px] block">{task.assigned_to}</span>
+                            <span className="text-[9px] text-slate-400 block">{task.assigned_role}</span>
+                          </div>
+                        </div>
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
+                          className="text-[11px] font-bold bg-emerald-50 border border-emerald-300 text-emerald-700 rounded-lg py-1 px-1.5 focus:outline-none cursor-pointer"
+                        >
+                          <option value="To Do">To Do</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTasks.filter(t => t.status === "Completed").length === 0 && (
+                    <div className="p-8 border border-dashed border-emerald-200 rounded-2xl text-center text-xs text-slate-400 flex-1 flex items-center justify-center">
+                      No completed tasks yet
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW B: TABLE VIEW */}
+          {leadTaskView === "table" && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="border-b border-slate-200 bg-[#f8fafc] text-slate-500 uppercase text-[10px] font-semibold">
+                  <tr>
+                    <th className="px-4 py-3">Deliverable / Task</th>
+                    <th className="px-4 py-3">Project & Phase</th>
+                    <th className="px-4 py-3">Assigned Worker</th>
+                    <th className="px-4 py-3">Match Score</th>
+                    <th className="px-4 py-3">Priority</th>
+                    <th className="px-4 py-3">Due Day</th>
+                    <th className="px-4 py-3 text-right">Status Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredTasks.map((task) => {
+                    const match = task.match_score || 94;
+                    return (
+                      <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-slate-900 text-xs sm:text-sm">{task.title}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{task.description}</div>
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900">{task.project_name}</div>
+                          <span className="text-[10px] text-[#4f46e5] bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
+                            {task.phase_name}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">
+                              {task.assigned_to.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="text-slate-900 font-bold text-xs">{task.assigned_to}</div>
+                              <div className="text-[10px] text-slate-500">{task.assigned_role}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold">
+                            <Sparkles className="h-3 w-3 text-emerald-600" />
+                            {match}%
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span
+                            className={cn(
+                              "rounded-md px-2 py-0.5 text-[10px] font-bold uppercase",
+                              task.priority === "High"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                            )}
+                          >
+                            {task.priority}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">
+                          Day {task.due_day}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
+                            className={cn(
+                              "rounded-xl px-2.5 py-1 text-xs font-semibold focus:outline-none border cursor-pointer shadow-sm",
+                              task.status === "Completed"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                : task.status === "In Progress"
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                                : "bg-white text-slate-700 border-slate-300"
+                            )}
+                          >
+                            <option value="To Do">To Do</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </main>

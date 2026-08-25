@@ -86,8 +86,11 @@ const DEFAULT_ATTENDEE_PRESETS = [
   "Arjun Reddy",
   "Ishita Rao",
   "Rahul Kumar",
-  "Marcus Brody",
-  "Sarah Lin",
+  "Priya Sharma",
+  "Sneha Patel",
+  "Vikram Singh",
+  "Ananya Rao",
+  "Divya Menon"
 ];
 
 function CalendarPageContent() {

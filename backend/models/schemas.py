@@ -44,6 +44,17 @@ class TaskItem(BaseModel):
     status: TaskStatus = "To Do"
     priority: TaskPriority = "Medium"
     due_day: int = 10
+    # ── Elite Allocation Metadata (optional — all backward compatible) ────────
+    confidence: Optional[int] = None               # 0–100
+    confidence_level: Optional[str] = None         # HIGH | MEDIUM | LOW
+    risk: Optional[str] = None                     # LOW | MEDIUM | HIGH
+    risk_reasons: Optional[List[str]] = None
+    projected_workload: Optional[float] = None     # % after assignment
+    estimated_hours: Optional[float] = None
+    deadline_feasible: Optional[bool] = None       # True if capacity covers task hours
+    allocation_strategy: Optional[str] = None      # balanced | deadline_critical | ...
+    scoring_breakdown: Optional[Dict] = None       # {skill, workload, experience, ...}
+    alternatives: Optional[List[Dict]] = None      # top 2 runner-up candidates
 
 class TaskStatusUpdate(BaseModel):
     status: TaskStatus
@@ -196,6 +207,14 @@ class AITaskAllocationResponse(BaseModel):
     tasks: List[TaskItem]
     summary: str
 
+class EliteAllocationResponse(AITaskAllocationResponse):
+    """Extended allocation response with engine metadata. Optional — frontend ignores unknown fields."""
+    engine_version: str = "elite_v2.0"
+    allocation_strategy: str = "balanced"
+    total_candidates_evaluated: int = 0
+    constraints_applied: List[str] = []
+    allocation_metrics: Dict = {}
+
 class ConfirmTaskAllocationPayload(BaseModel):
     project_id: str
     tasks: List[TaskItem]
@@ -271,4 +290,51 @@ class EmployeeModel(BaseModel):
     avatar_color: str = "bg-indigo-600"
     password: Optional[str] = None
 
+# Real-Time Multi-Role Activity & Notification Models
+ActivityEventType = Literal[
+    "task_completed", "task_started", "task_reopened", 
+    "task_claimed", "task_allocated", "project_accepted", 
+    "project_created", "stage_updated"
+]
 
+class ActivityLog(BaseModel):
+    id: str
+    event_type: ActivityEventType
+    project_id: str
+    project_name: str
+    task_id: Optional[str] = None
+    task_title: Optional[str] = None
+    employee_id: Optional[str] = None
+    employee_name: Optional[str] = None
+    employee_role: Optional[str] = None
+    from_status: Optional[str] = None
+    to_status: Optional[str] = None
+    message: str
+    timestamp: str
+
+class ClaimTaskPayload(BaseModel):
+    employee_id: str
+    employee_name: Optional[str] = None
+
+class EmployeeSprintStats(BaseModel):
+    employee_id: str
+    employee_name: str
+    designation: str
+    total_tasks: int
+    completed_tasks: int
+    in_progress_tasks: int
+    todo_tasks: int
+    completion_rate: int
+
+class ProjectSprintSummary(BaseModel):
+    project_id: str
+    project_name: str
+    total_deliverables: int
+    completed_deliverables: int
+    in_progress_deliverables: int
+    todo_deliverables: int
+    overall_progress_percent: int
+    assigned_employees_count: int
+    employee_breakdown: List[EmployeeSprintStats]
+    stages: Dict[str, str]
+    recent_activities: List[ActivityLog]

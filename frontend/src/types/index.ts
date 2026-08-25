@@ -272,3 +272,53 @@ export interface MeetingCreateInput {
   agenda?: string;
 }
 
+export type ActivityEventType = 
+  | "task_completed" 
+  | "task_started" 
+  | "task_reopened" 
+  | "task_claimed" 
+  | "task_allocated" 
+  | "project_accepted" 
+  | "project_created" 
+  | "stage_updated";
+
+export interface ActivityLog {
+  id: string;
+  event_type: ActivityEventType;
+  project_id: string;
+  project_name: string;
+  task_id?: string;
+  task_title?: string;
+  employee_id?: string;
+  employee_name?: string;
+  employee_role?: string;
+  from_status?: string;
+  to_status?: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface EmployeeSprintStats {
+  employee_id: string;
+  employee_name: string;
+  designation: string;
+  total_tasks: number;
+  completed_tasks: number;
+  in_progress_tasks: number;
+  todo_tasks: number;
+  completion_rate: number;
+}
+
+export interface ProjectSprintSummary {
+  project_id: string;
+  project_name: string;
+  total_deliverables: number;
+  completed_deliverables: number;
+  in_progress_deliverables: number;
+  todo_deliverables: number;
+  overall_progress_percent: number;
+  assigned_employees_count: number;
+  employee_breakdown: EmployeeSprintStats[];
+  stages: Record<string, string>;
+  recent_activities: ActivityLog[];
+}

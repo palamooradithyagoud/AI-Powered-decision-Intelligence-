@@ -532,10 +532,10 @@ export default function LoginPage() {
               </span>
             </div>
 
-            {/* Quick Sample Fill Bar */}
+            {/* Quick Fill Bar */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-semibold text-slate-500">
-                Quick Fill Sample Credentials:
+                Quick Fill Employee Credentials:
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {[

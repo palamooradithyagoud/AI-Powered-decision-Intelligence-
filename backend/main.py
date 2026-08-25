@@ -11,7 +11,8 @@ from models.schemas import (
     SimulationResponse, User, LoginRequest, LoginResponse,
     TaskItem, TaskStatusUpdate, MeetingItem, MeetingCreate,
     EmployeeModel, LeadActionPayload, AITaskAllocationResponse,
-    ConfirmTaskAllocationPayload
+    ConfirmTaskAllocationPayload, ActivityLog, ClaimTaskPayload,
+    ProjectSprintSummary
 )
 
 from db.storage import storage
@@ -54,9 +55,8 @@ def login(payload: LoginRequest):
     """Authenticate user with email, employee ID (emp_01 - emp_40), or name."""
     identifier = payload.email.strip()
     password = payload.password.strip()
-    clean_id = identifier.lower()
 
-    # 1. First check if it matches an employee in the 40-employee dataset
+    # 1. Check if it matches an employee in the 40-employee dataset
     emp = authenticate_employee(identifier, password)
     if emp:
         role = payload.role or emp.get("role", "employee")
@@ -70,35 +70,20 @@ def login(payload: LoginRequest):
         )
         return LoginResponse(
             user=user,
-            token=f"jwt_mock_{user.id}_{user.role}",
+            token=f"jwt_{user.id}_{user.role}",
             message=f"Successfully authenticated as {user.name} ({user.title})"
         )
 
-    # 2. Check special legacy demo email: shivanallella@gmail.com
-    if clean_id == "shivanallella@gmail.com":
-        pwd_clean = password.lower()
-        num = 6 # Default to emp_06 (Ananya Rao)
-        if pwd_clean.startswith("emp_"):
-            parts = pwd_clean.split("_")
-            if len(parts) == 2 and parts[1].isdigit():
-                num = int(parts[1])
-        user = storage.get_employee_user(num, email="shivanallella@gmail.com")
-        return LoginResponse(
-            user=user,
-            token=f"jwt_mock_{user.id}_{user.role}",
-            message=f"Successfully authenticated as {user.name} ({user.role})"
-        )
-
-    # 3. Standard demo users check (manager@company.ai, lead@company.ai, etc.)
+    # 2. Standard role users check (manager@company.ai, lead@company.ai, etc.)
     user = storage.authenticate_user(payload.email, payload.role)
     if user:
         return LoginResponse(
             user=user,
-            token=f"jwt_mock_{user.id}_{user.role}",
+            token=f"jwt_{user.id}_{user.role}",
             message=f"Successfully authenticated as {user.name} ({user.role})"
         )
 
-    raise HTTPException(status_code=401, detail="Invalid credentials. For employees, please use your Employee ID (e.g. emp_01 to emp_40) as your ID and password.")
+    raise HTTPException(status_code=401, detail="Invalid credentials. Please use your Employee ID (emp_01 to emp_40) or registered email.")
 
 @app.get("/api/auth/users", response_model=List[User])
 def get_demo_users():
@@ -199,11 +184,36 @@ def get_tasks(
 
 @app.put("/api/tasks/{task_id}/status", response_model=TaskItem)
 def update_task_status(task_id: str, payload: TaskStatusUpdate):
-    """Update task execution status (To Do, In Progress, Completed)."""
+    """Update task execution status (To Do, In Progress, Completed) and broadcast real-time sync."""
     task = storage.update_task_status(task_id, payload.status)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+@app.post("/api/tasks/{task_id}/claim", response_model=TaskItem)
+def claim_task(task_id: str, payload: ClaimTaskPayload):
+    """Allow an employee to self-assign / claim a deliverable."""
+    task = storage.claim_task(task_id, payload.employee_id, payload.employee_name)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+# ================= MULTI-ROLE REAL-TIME ACTIVITIES & AUDIT STREAM =================
+@app.get("/api/activities", response_model=List[ActivityLog])
+def list_activities(
+    project_id: Optional[str] = Query(None, description="Filter activities by project"),
+    limit: int = Query(25, ge=1, le=100, description="Max activities to retrieve")
+):
+    """Retrieve real-time audit feed of task completions and sprint actions for Lead & Manager."""
+    return storage.list_activities(project_id=project_id, limit=limit)
+
+@app.get("/api/projects/{project_id}/sprint-summary", response_model=ProjectSprintSummary)
+def get_project_sprint_summary(project_id: str):
+    """Get real-time sprint execution progress, employee deliverables breakdown, and recent activity."""
+    summary = storage.get_project_sprint_summary(project_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return summary
 
 # ================= MANAGER PROJECT PLANNING =================
 @app.get("/api/kpis", response_model=DashboardKPIs)
@@ -281,7 +291,14 @@ def ai_allocate_tasks(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
     
     tasks = storage.ai_allocate_tasks(project_id)
-    summary = f"AI evaluated all 40 corporate employees against {len(tasks)} deliverables across {len(project.analysis.timeline_breakdown.phases)} phases based on skill overlap, bandwidth availability, domain experience, and availability status."
+    phase_count = len(project.analysis.timeline_breakdown.phases)
+    summary = (
+        f"Elite AI Workforce Allocation Engine evaluated all 40 employees across "
+        f"{len(tasks)} deliverables in {phase_count} phases. "
+        f"Scoring: Semantic Skill (35%) · Workload Capacity (25%) · "
+        f"Relevant Experience (15%) · Deadline Availability (15%) · "
+        f"Performance (10%). Hard constraints enforced. Global optimization applied."
+    )
     
     return AITaskAllocationResponse(
         project_id=project.id,

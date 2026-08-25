@@ -1,7 +1,7 @@
 import { 
   Project, ProjectCreateInput, DashboardKPIs, SimulationResponse, 
   AIAnalysisResult, User, UserRole, LoginResponse, TaskItem, TaskStatus,
-  EmployeeProfile, AITaskAllocationResponse
+  EmployeeProfile, AITaskAllocationResponse, ActivityLog, ProjectSprintSummary
 } from "@/types";
 
 export type { EmployeeProfile };
@@ -238,6 +238,43 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus): Prom
   });
   if (!res.ok) throw new Error("Failed to update task status");
   return res.json();
+}
+
+export async function claimTask(taskId: string, employeeId: string, employeeName?: string): Promise<TaskItem> {
+  const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ employee_id: employeeId, employee_name: employeeName }),
+  });
+  if (!res.ok) throw new Error("Failed to claim task");
+  return res.json();
+}
+
+// Multi-Role Real-Time Activity & Audit Feed APIs
+export async function fetchActivities(params?: { project_id?: string; limit?: number }): Promise<ActivityLog[]> {
+  try {
+    const query = new URLSearchParams();
+    if (params?.project_id) query.set("project_id", params.project_id);
+    if (params?.limit) query.set("limit", String(params.limit));
+
+    const res = await fetch(`${API_BASE_URL}/api/activities?${query.toString()}`, { cache: "no-store" });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    console.warn("fetchActivities notice:", err);
+    return [];
+  }
+}
+
+export async function fetchSprintSummary(projectId: string): Promise<ProjectSprintSummary | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/sprint-summary`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn("fetchSprintSummary notice:", err);
+    return null;
+  }
 }
 
 // Manager Project APIs

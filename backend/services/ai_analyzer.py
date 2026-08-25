@@ -1031,6 +1031,277 @@ Return ONLY a valid JSON object with the following exact keys and structure:
             "ai_recommendation": base_analysis.ai_recommendation
         }
 
+    def _build_workforce_allocation_prompt(
+        self,
+        project_name: str,
+        project_description: str,
+        project_requirements: str,
+        phases: List[Any],
+        employees: List[Dict[str, Any]]
+    ) -> str:
+        phases_text = []
+        for p in phases:
+            p_name = getattr(p, "phase_name", "") if hasattr(p, "phase_name") else p.get("phase_name", "")
+            p_end = getattr(p, "end_day", 30) if hasattr(p, "end_day") else p.get("end_day", 30)
+            delivs = getattr(p, "key_deliverables", []) if hasattr(p, "key_deliverables") else p.get("key_deliverables", [])
+            phases_text.append(f"Phase '{p_name}' (Due Day {p_end}): " + ", ".join(f"'{d}'" for d in delivs))
+        phases_str = "\n".join(phases_text)
+
+        emp_lines = []
+        for e in employees:
+            wl = e.get("workload", 50)
+            wl_tag = f"Workload: {wl}%" + (" [OVERLOADED >70% - CANNOT ASSIGN]" if wl > 70 else " [ELIGIBLE <=70%]")
+            emp_lines.append(
+                f"[{e['id']}] {e['name']} | {e.get('designation')} | {wl_tag} | Exp: {e.get('experience')} | Skills: {', '.join(e.get('skills', []))} | PrevProjects: {', '.join(e.get('prev_projects', []))}"
+            )
+        employees_str = "\n".join(emp_lines)
+
+        return f"""You are the Elite AI Workforce Allocation Engine.
+Assign each project deliverable to the best-matched employee based strictly on Skill Match, Workload (<70%), Experience, and Previous Project Relevance.
+
+PROJECT DETAILS:
+Name: {project_name}
+Description: {project_description}
+Requirements: {project_requirements}
+
+SPRINT DELIVERABLES TO ASSIGN:
+{phases_str}
+
+ALL 40 EMPLOYEES:
+{employees_str}
+
+MANDATORY RULES & CONSTRAINTS:
+1. WORKLOAD HARD CEILING (<= 70%):
+   - MANDATORY: Check each employee's current workload. If current workload > 70%, DO NOT assign any work to them.
+   - Each assigned deliverable adds approx 5%-8% workload (2 to 3.5 hours). Track projected workload for each assigned worker: current_workload + (assigned_tasks * 6%).
+   - If an employee reaches > 70% projected workload, DO NOT assign more tasks to them. Search for an alternative matching worker.
+   - Under NO circumstances can any employee have a projected workload above 70%.
+
+2. STRICT SKILL, EXPERIENCE & PREVIOUS PROJECT MATCHING:
+   - Assign tasks strictly to workers who possess matching technical skills, role competency, and relevant previous project background.
+   - Check 'skills', 'designation', 'experience', and 'prev_projects' for domain relevance.
+   - Prioritize workers who have worked on similar previous projects.
+   - NEVER assign software engineering, architecture, backend, AI, database, security, or UI/rendering tasks to Technical Writers (Nisha Kapoor, Pallavi Joshi) unless the task is explicitly documentation/writing.
+   - If no suitable candidate with matching skills has workload <= 70%, set 'assigned_to': 'Unassigned', 'assigned_emp_id': null, 'assigned_role': 'Unassigned', and 'match_score': 0.
+
+3. FAIR WORK DISTRIBUTION:
+   - Distribute tasks across all qualified available workers (< 70% workload). Avoid overloading a single worker.
+
+Output ONLY a valid JSON object with the following structure:
+```json
+{{
+  "tasks": [
+    {{
+      "phase_name": "Phase Name",
+      "title": "Exact Deliverable Title",
+      "description": "Short description of deliverable",
+      "assigned_to": "Employee Name or Unassigned",
+      "assigned_emp_id": "emp_XX or null",
+      "assigned_role": "Employee Designation or Unassigned",
+      "match_score": 85,
+      "priority": "High",
+      "due_day": 8,
+      "projected_workload": 65.0,
+      "confidence_level": "HIGH",
+      "risk": "LOW",
+      "ai_rationale": "Score explanation: matched skills (e.g. SQL, Python), previous project relevance ('FinTech Core'), capacity headroom (65% workload <= 70%), and 5 years experience."
+    }}
+  ]
+}}
+```"""
+
+    def allocate_tasks_with_ai(
+        self,
+        project_id: str,
+        project_name: str,
+        project_description: str,
+        project_requirements: str,
+        phases: List[Any],
+        employees: List[Dict[str, Any]]
+    ) -> List[TaskItem]:
+        """
+        Primary AI Workforce Allocator:
+        Sends dynamic project details and all 40 employee details to the AI model (Gemini / Groq),
+        and strictly enforces skill matching, workload limit <= 70%, experience, and previous projects.
+        """
+        prompt = self._build_workforce_allocation_prompt(
+            project_name, project_description, project_requirements, phases, employees
+        )
+        emp_lookup = {e["id"]: e for e in employees}
+        name_lookup = {e["name"].strip().lower(): e for e in employees}
+
+        # ── 1. Primary Attempt: Google Gemini AI ──────────────────────────────────
+        if self.client:
+            models_to_try = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+            for mod in models_to_try:
+                try:
+                    print(f"[AI Allocator] Requesting workforce allocation from Gemini ({mod})...")
+                    resp = self.client.models.generate_content(
+                        model=mod,
+                        contents=prompt
+                    )
+                    if resp and resp.text:
+                        cleaned = resp.text.strip()
+                        if "```json" in cleaned:
+                            cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+                        elif "```" in cleaned:
+                            cleaned = cleaned.split("```")[1].split("```")[0].strip()
+                        
+                        data = json.loads(cleaned)
+                        tasks = self._parse_llm_tasks(project_id, project_name, phases, data.get("tasks", []), emp_lookup, name_lookup)
+                        if tasks:
+                            print(f"[AI Allocator] Successfully allocated {len(tasks)} tasks using Gemini ({mod})")
+                            return tasks
+                except Exception as e:
+                    print(f"[AI Allocator] Gemini ({mod}) error: {e}")
+                    continue
+
+        # ── 2. Secondary Attempt: Groq AI ─────────────────────────────────────────
+        groq_key = os.getenv("GROQ_API_KEY")
+        if groq_key:
+            try:
+                from groq import Groq
+                groq_client = Groq(api_key=groq_key)
+                groq_models = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'groq/compound-mini']
+                for g_mod in groq_models:
+                    try:
+                        print(f"[AI Allocator] Requesting workforce allocation from Groq ({g_mod})...")
+                        resp = groq_client.chat.completions.create(
+                            model=g_mod,
+                            messages=[
+                                {"role": "system", "content": "You are a senior AI workforce optimization engine. Always output valid JSON strictly inside a ```json code block."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            max_tokens=4096,
+                            temperature=0.1
+                        )
+                        content = resp.choices[0].message.content or ""
+                        if not content and hasattr(resp.choices[0].message, "reasoning"):
+                            content = resp.choices[0].message.reasoning or ""
+                        
+                        if "```json" in content:
+                            content = content.split("```json")[1].split("```")[0].strip()
+                        elif "```" in content:
+                            content = content.split("```")[1].split("```")[0].strip()
+
+                        data = json.loads(content)
+                        tasks = self._parse_llm_tasks(project_id, project_name, phases, data.get("tasks", []), emp_lookup, name_lookup)
+                        if tasks:
+                            print(f"[AI Allocator] Successfully allocated {len(tasks)} tasks using Groq ({g_mod})")
+                            return tasks
+                    except Exception as g_err:
+                        print(f"[AI Allocator] Groq ({g_mod}) error: {g_err}")
+                        continue
+            except Exception as e:
+                print(f"[AI Allocator] Groq init error: {e}")
+
+        # ── 3. Tertiary Fallback: Algorithmic Multi-Factor Allocator ───────────────
+        print(f"[AI Allocator] Cascading to Algorithmic Multi-Factor Allocator...")
+        return self.allocate_tasks_to_employees(
+            project_id=project_id,
+            project_name=project_name,
+            project_description=project_description,
+            phases=phases,
+            employees=employees
+        )
+
+    def _parse_llm_tasks(
+        self,
+        project_id: str,
+        project_name: str,
+        phases: List[Any],
+        raw_tasks: List[Dict[str, Any]],
+        emp_lookup: Dict[str, Dict[str, Any]],
+        name_lookup: Dict[str, Dict[str, Any]]
+    ) -> List[TaskItem]:
+        """Validates and maps LLM task output to TaskItem schemas with strict 70% workload verification."""
+        llm_task_map = {}
+        for rt in raw_tasks:
+            title = rt.get("title", "").strip().lower()
+            if title:
+                llm_task_map[title] = rt
+
+        result_tasks: List[TaskItem] = []
+        task_counter = 1
+        emp_task_counts = {}
+
+        for p in phases:
+            p_name = getattr(p, "phase_name", "") if hasattr(p, "phase_name") else p.get("phase_name", "")
+            p_end = getattr(p, "end_day", 30) if hasattr(p, "end_day") else p.get("end_day", 30)
+            delivs = getattr(p, "key_deliverables", []) if hasattr(p, "key_deliverables") else p.get("key_deliverables", [])
+
+            for deliv in delivs:
+                deliv_lower = deliv.strip().lower()
+                matched_raw = llm_task_map.get(deliv_lower)
+                if not matched_raw:
+                    for k, v in llm_task_map.items():
+                        if k in deliv_lower or deliv_lower in k:
+                            matched_raw = v
+                            break
+
+                emp_id = matched_raw.get("assigned_emp_id") if matched_raw else None
+                emp = emp_lookup.get(emp_id) if emp_id else None
+                if not emp and matched_raw:
+                    cand_name = matched_raw.get("assigned_to", "").strip().lower()
+                    emp = name_lookup.get(cand_name)
+                    if emp:
+                        emp_id = emp["id"]
+
+                # Enforce strict 70% workload ceiling
+                assigned_to = "Unassigned"
+                assigned_role = "Unassigned"
+                final_emp_id = None
+                match_score = 0
+                proj_wl = None
+                rationale = matched_raw.get("ai_rationale") if matched_raw else "⚠ No candidate with matching skills and workload <= 70% available. Manual assignment required."
+                confidence = 0
+                conf_level = "LOW"
+                risk = "HIGH"
+
+                if emp:
+                    base_wl = emp.get("workload", 50)
+                    assigned_count = emp_task_counts.get(emp["id"], 0)
+                    calculated_proj_wl = base_wl + (assigned_count * 6.0) + 6.0
+                    
+                    if calculated_proj_wl <= 70.0 and base_wl <= 70.0:
+                        final_emp_id = emp["id"]
+                        assigned_to = emp["name"]
+                        assigned_role = emp.get("designation", "Staff Engineer")
+                        match_score = int(matched_raw.get("match_score", 85)) if matched_raw else 85
+                        proj_wl = round(calculated_proj_wl, 1)
+                        rationale = matched_raw.get("ai_rationale") or f"Assigned to {assigned_to} based on skill match, experience, and available capacity ({proj_wl}% <= 70%)."
+                        confidence = 88 if matched_raw and matched_raw.get("confidence_level") == "HIGH" else 75
+                        conf_level = matched_raw.get("confidence_level") if matched_raw else "HIGH"
+                        risk = matched_raw.get("risk") if matched_raw else "LOW"
+                        emp_task_counts[emp["id"]] = assigned_count + 1
+
+                task_item = TaskItem(
+                    id=f"task_{project_id[:6]}_{task_counter:02d}",
+                    project_id=project_id,
+                    project_name=project_name,
+                    phase_name=p_name,
+                    title=deliv,
+                    description=f"Sprint Deliverable for {p_name}: {deliv}",
+                    assigned_role=assigned_role,
+                    assigned_to=assigned_to,
+                    assigned_emp_id=final_emp_id,
+                    match_score=match_score,
+                    ai_rationale=rationale,
+                    status="To Do",
+                    priority="High" if any(k in p_name.lower() for k in ["planning", "architecture", "security", "core"]) else "Medium",
+                    due_day=p_end,
+                    confidence=confidence,
+                    confidence_level=conf_level,
+                    risk=risk,
+                    projected_workload=proj_wl,
+                    deadline_feasible=True if assigned_to != "Unassigned" else False,
+                    allocation_strategy="AI Workforce Optimization"
+                )
+                result_tasks.append(task_item)
+                task_counter += 1
+
+        return result_tasks
+
     def allocate_tasks_to_employees(
         self,
         project_id: str,
@@ -1040,18 +1311,16 @@ Return ONLY a valid JSON object with the following exact keys and structure:
         employees: List[Dict[str, Any]]
     ) -> List[TaskItem]:
         """
-        AI Intelligent Work Allocator:
-        Evaluates all 40 employees from EMPLOYEE_ID.xlsx against each phase deliverable based on:
+        Deterministic Algorithmic Work Allocator (Fallback):
+        Evaluates all 40 employees against each phase deliverable based on:
         1. Skill Match & Role Alignment (40%)
-        2. Workload & Headroom Bandwidth (30%)
+        2. Workload & Headroom Bandwidth <= 70% (30%)
         3. Experience & Previous Project Relevance (20%)
         4. Real-time Availability Status (10%)
         """
         allocated_tasks: List[TaskItem] = []
-        # Track virtual workload dynamically so tasks are distributed across the best team members
         dynamic_workloads = {e["id"]: e.get("workload", 50) for e in employees}
 
-        # Role to keywords mapping
         phase_role_keywords = {
             "planning": ["requirements", "architecture", "agile", "scrum", "project management", "documentation", "uml"],
             "design": ["ui", "ux", "figma", "prototyping", "wireframing", "adobe", "user research"],
@@ -1078,7 +1347,6 @@ Return ONLY a valid JSON object with the following exact keys and structure:
             for deliv in deliverables:
                 deliv_lower = deliv.lower()
                 
-                # Determine target keywords for this deliverable
                 target_keywords = set()
                 for key, kws in phase_role_keywords.items():
                     if key in p_name_lower or key in deliv_lower:
@@ -1086,7 +1354,6 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                 if not target_keywords:
                     target_keywords.update(["python", "javascript", "react", "api", "testing", "development"])
 
-                # Score all 40 employees
                 candidate_scores = []
                 for emp in employees:
                     emp_id = emp["id"]
@@ -1098,37 +1365,44 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                     emp_avail = emp.get("availability_status", "Available")
                     emp_prev = [proj.lower() for proj in emp.get("prev_projects", [])]
 
-                    # 1. Skill Match Score (0 - 40 pts)
-                    skill_score = 0
-                    # Designation alignment (up to 20 pts)
-                    if any(k in emp_desig for k in ["frontend", "ui/ux", "designer"]) and any(k in p_name_lower for k in ["frontend", "ui", "design"]):
-                        skill_score += 20
-                    elif any(k in emp_desig for k in ["backend", "database", "full stack"]) and any(k in p_name_lower for k in ["backend", "database", "api"]):
-                        skill_score += 20
-                    elif any(k in emp_desig for k in ["ai", "machine learning", "data"]) and any(k in p_name_lower for k in ["ai", "ml", "data", "model"]):
-                        skill_score += 20
-                    elif any(k in emp_desig for k in ["devops", "cloud", "reliability", "infrastructure"]) and any(k in p_name_lower for k in ["devops", "cloud", "deployment", "infrastructure"]):
-                        skill_score += 20
-                    elif any(k in emp_desig for k in ["qa", "testing"]) and any(k in p_name_lower for k in ["qa", "testing", "test"]):
-                        skill_score += 20
-                    elif any(k in emp_desig for k in ["project manager", "architect", "analyst", "product"]) and any(k in p_name_lower for k in ["planning", "architecture", "scope"]):
-                        skill_score += 20
-                    elif "full stack" in emp_desig:
-                        skill_score += 15
-                    else:
-                        skill_score += 5
+                    # 1. Mandatory Workload Constraint (Hard 70% ceiling)
+                    if emp_workload > 70 or (emp_workload + 10) > 70:
+                        continue
+                    if emp_avail == "Busy":
+                        continue
 
-                    # Specific skill keyword matches (up to 20 pts)
+                    # 2. Skill Match Score (0 - 40 pts)
+                    skill_score = 0
+                    if any(k in emp_desig for k in ["frontend", "ui/ux", "designer"]) and any(k in p_name_lower or k in deliv_lower for k in ["frontend", "ui", "design", "render", "canvas", "webgl"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["backend", "database", "full stack", "integration"]) and any(k in p_name_lower or k in deliv_lower for k in ["backend", "database", "api", "fhir", "endpoint", "pipeline", "schema"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["ai", "machine learning", "data"]) and any(k in p_name_lower or k in deliv_lower for k in ["ai", "ml", "data", "model"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["devops", "cloud", "reliability", "infrastructure", "site reliability"]) and any(k in p_name_lower or k in deliv_lower for k in ["devops", "cloud", "deployment", "infrastructure", "k8s", "kubernetes", "logging"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["security", "cybersecurity"]) and any(k in p_name_lower or k in deliv_lower for k in ["security", "hipaa", "audit", "auth", "compliance"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["qa", "testing"]) and any(k in p_name_lower or k in deliv_lower for k in ["qa", "testing", "test"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["project manager", "architect", "analyst", "product"]) and any(k in p_name_lower or k in deliv_lower for k in ["planning", "architecture", "blueprint", "scope"]):
+                        skill_score += 20
+                    elif any(k in emp_desig for k in ["technical writer"]) and any(k in p_name_lower or k in deliv_lower for k in ["documentation", "writing", "guide", "manual", "markdown"]):
+                        skill_score += 20
+                    elif "full stack" in emp_desig and not any(k in p_name_lower for k in ["security", "architecture"]):
+                        skill_score += 10
+
                     matched_skills = [s for s in emp_skills if any(kw in s or s in kw for kw in target_keywords)]
                     skill_score += min(20, len(matched_skills) * 7)
 
-                    # 2. Workload & Headroom Bandwidth Score (0 - 30 pts)
-                    headroom = max(0, 100 - emp_workload)
-                    workload_score = (headroom / 100.0) * 30.0
-                    if emp_workload > 90:
-                        workload_score -= 10
+                    if skill_score < 14 and not matched_skills:
+                        continue
 
-                    # 3. Experience & Previous Project Relevance (0 - 20 pts)
+                    # 3. Workload & Headroom Bandwidth Score (0 - 30 pts)
+                    headroom = max(0, 70 - emp_workload)
+                    workload_score = (headroom / 70.0) * 30.0
+
+                    # 4. Experience & Previous Project Relevance (0 - 20 pts)
                     exp_score = min(10.0, float(emp_exp) * 1.5)
                     proj_match_score = 0
                     matched_prev_proj = None
@@ -1143,7 +1417,7 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                             break
                     exp_proj_score = min(20.0, exp_score + proj_match_score)
 
-                    # 4. Availability Status Score (0 - 10 pts)
+                    # 5. Availability Status Score (0 - 10 pts)
                     if emp_avail == "Available":
                         avail_score = 10.0
                     elif emp_avail == "Partial":
@@ -1151,7 +1425,7 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                     else:
                         avail_score = 1.0
 
-                    total_score = min(99, max(52, int(skill_score + workload_score + exp_proj_score + avail_score)))
+                    total_score = min(99, max(50, int(skill_score + workload_score + exp_proj_score + avail_score)))
 
                     candidate_scores.append({
                         "emp": emp,
@@ -1162,23 +1436,40 @@ Return ONLY a valid JSON object with the following exact keys and structure:
                         "workload": emp_workload
                     })
 
-                # Sort by score descending
+                if not candidate_scores:
+                    allocated_tasks.append(TaskItem(
+                        id=f"task_{project_id[:6]}_{task_counter:02d}",
+                        project_id=project_id,
+                        project_name=project_name,
+                        phase_name=p_name,
+                        title=deliv,
+                        description=f"Sprint Deliverable for {p_name}: {deliv}",
+                        assigned_role="Unassigned",
+                        assigned_to="Unassigned",
+                        assigned_emp_id=None,
+                        match_score=0,
+                        ai_rationale=f"⚠ No suitable candidate with workload <= 70% and matching skills passed constraints. Manual assignment required.",
+                        status="To Do",
+                        priority="High" if any(k in p_name_lower for k in ["planning", "architecture", "security", "core"]) else "Medium",
+                        due_day=p_end_day
+                    ))
+                    task_counter += 1
+                    continue
+
                 candidate_scores.sort(key=lambda x: x["score"], reverse=True)
                 best = candidate_scores[0]
                 best_emp = best["emp"]
                 best_score = best["score"]
 
-                # Build rich, explanatory AI rationale
                 skill_highlight = ", ".join(best["matched_skills"][:2]) if best["matched_skills"] else best_emp["skills"][0]
                 proj_clause = f", past project '{best['matched_proj'].title()}'" if best["matched_proj"] else f", {best_emp['experience']} experience"
                 rationale = (
                     f"Match Score {best_score}%: Direct competence in {skill_highlight}, "
-                    f"{best['headroom']}% bandwidth headroom ({best['workload']}% current workload)"
+                    f"{best['headroom']}% capacity headroom ({best['workload']}% current workload, max 70%)"
                     f"{proj_clause}, status: {best_emp.get('availability_status', 'Available')}."
                 )
 
-                # Increment dynamic workload to avoid overloading one employee
-                dynamic_workloads[best_emp["id"]] = min(100, dynamic_workloads.get(best_emp["id"], 50) + 12)
+                dynamic_workloads[best_emp["id"]] = min(100, dynamic_workloads.get(best_emp["id"], 50) + 10)
 
                 task_item = TaskItem(
                     id=f"task_{project_id[:6]}_{task_counter:02d}",

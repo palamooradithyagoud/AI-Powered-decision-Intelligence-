@@ -84,7 +84,7 @@ export default function Sidebar() {
           title: "Kanban System",
           icon: FolderKanban,
           path: "/employee?tab=progress",
-          active: pathname === "/employee" && tabParam === "progress",
+          active: pathname === "/employee" && (tabParam === "progress" || tabParam === "kanban"),
         },
         {
           title: "Notifications",
@@ -99,48 +99,63 @@ export default function Sidebar() {
           active: pathname === "/employee" && tabParam === "profile",
         },
       ]
-    : [
+    : activeRole === "project_lead"
+    ? [
         {
-          title: "Dashboard",
+          title: "Lead Workbench",
+          icon: Layers,
+          path: "/lead",
+          active: pathname === "/lead",
+        },
+        {
+          title: "Portfolio Hub",
           icon: LayoutDashboard,
           path: "/",
           active: pathname === "/",
         },
         {
-          title: "Tasks",
+          title: "Team Execution",
           icon: CheckCircle2,
           path: "/employee",
           active: pathname === "/employee",
         },
         {
-          title: "Projects",
-          icon: FolderKanban,
-          path: "/lead",
-          active: pathname === "/lead",
-        },
-        {
-          title: "Team",
-          icon: Users,
-          path: "/lead",
-          active: false,
-        },
-        {
-          title: "Analytics",
-          icon: BarChart3,
-          path: "/",
-          active: false,
-        },
-        {
-          title: "Calendar",
+          title: "Sprint Calendar",
           icon: Calendar,
           path: "/calendar",
           active: pathname === "/calendar",
         },
+      ]
+    : [
         {
-          title: "Settings",
-          icon: Settings,
+          title: "Portfolio Hub",
+          icon: LayoutDashboard,
           path: "/",
-          active: false,
+          active: pathname === "/",
+        },
+        {
+          title: "New AI Scope",
+          icon: PlusCircle,
+          path: "/create",
+          active: pathname === "/create",
+        },
+        {
+          title: "Lead Review Hub",
+          icon: Layers,
+          path: "/lead",
+          active: pathname === "/lead",
+        },
+        {
+          title: "Task Workbench",
+          icon: CheckCircle2,
+          path: "/employee",
+          active: pathname === "/employee",
+        },
+        {
+          title: "Sprint Calendar",
+          icon: Calendar,
+          path: "/calendar",
+          active: pathname === "/calendar",
         },
       ];
 
@@ -287,6 +302,7 @@ export default function Sidebar() {
               <div className="flex items-center justify-between px-3">
                 <button
                   onClick={() => setProjectsOpen(!projectsOpen)}
+                  suppressHydrationWarning
                   className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   <FolderKanban className="h-3 w-3 text-slate-400" />
@@ -366,6 +382,7 @@ export default function Sidebar() {
           <div className="relative">
             <button
               onClick={() => setRoleSwitcherOpen(!roleSwitcherOpen)}
+              suppressHydrationWarning
               className={cn(
                 "w-full flex items-center rounded-2xl p-2.5 transition-all bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 shadow-sm text-slate-900 group",
                 isCollapsed ? "justify-center" : "justify-between"
