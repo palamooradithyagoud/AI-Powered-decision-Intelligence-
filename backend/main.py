@@ -377,6 +377,36 @@ def delete_meeting(meeting_id: str):
         raise HTTPException(status_code=404, detail="Meeting not found")
     return {"status": "success", "message": f"Meeting {meeting_id} deleted"}
 
+# ================= N8N WORKFLOW INTEGRATION ENDPOINTS =================
+@app.get("/api/integrations/n8n/status")
+def get_n8n_status():
+    """Check n8n webhook configuration and target nodes."""
+    from services.n8n_service import n8n_service
+    return n8n_service.get_status()
+
+@app.get("/api/integrations/n8n/workflow")
+def get_n8n_workflow():
+    """Retrieve the n8n workflow definition JSON."""
+    workflow_path = os.path.join(os.path.dirname(__file__), "integrations", "n8n_assignment_workflow.json")
+    if os.path.exists(workflow_path):
+        import json
+        with open(workflow_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    raise HTTPException(status_code=404, detail="n8n workflow definition not found")
+
+@app.post("/api/integrations/n8n/trigger-meeting-reminder")
+def trigger_n8n_meeting_reminder(payload: MeetingCreate):
+    """Explicitly trigger n8n Project Assignment & Reminder Email workflow for a meeting."""
+    from services.n8n_service import n8n_service
+    meeting_item = storage.create_meeting(payload)
+    project = storage.get_project(payload.project_id) if payload.project_id else None
+    result = n8n_service.trigger_for_meeting(meeting_item, project)
+    return {
+        "status": "success",
+        "meeting": meeting_item,
+        "n8n_dispatch": result
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

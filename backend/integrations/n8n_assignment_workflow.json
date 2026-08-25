@@ -1,0 +1,252 @@
+{
+  "name": "Project Assignment Reminder Emails",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Project Assignment",
+        "formDescription": "Assign work to an employee by designation. An assignment reminder email is sent automatically to the matching employee.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Project Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Project Information / Description",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Designation",
+              "placeholder": "e.g. UI/UX Developer, Backend Developer, Frontend Developer",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Assigned Responsibility / Task",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Project Deadline",
+              "fieldType": "date",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Priority",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "High"
+                  },
+                  {
+                    "option": "Medium"
+                  },
+                  {
+                    "option": "Low"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Project-Specific Instructions",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "036ddd85-075d-48bb-b979-b219ab6aa442",
+      "name": "Project Assignment Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "30fd146d-5f97-4acf-993f-b2b7ded422b1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "88eNZrJNQaMMrX7w",
+          "cachedResultName": "employee_directory"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "designation",
+              "keyValue": "={{ $json.designation }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "05cc71ce-2963-472e-98f4-b531f04bc376",
+      "name": "Get Employee By Designation",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a professional project assignment reminder email using ONLY the data below. Do not invent any missing information.\n\nEmployee Name: {{ $json.employee_name }}\nEmployee Designation: {{ $json.designation }}\nProject Name: {{ $('Project Assignment Form').item.json.project_name }}\nProject Description: {{ $('Project Assignment Form').item.json.project_description }}\nAssigned Responsibility / Task: {{ $('Project Assignment Form').item.json.assigned_task }}\nProject Deadline: {{ $('Project Assignment Form').item.json.deadline }}\nPriority: {{ $('Project Assignment Form').item.json.priority }}\nProject-Specific Instructions: {{ $('Project Assignment Form').item.json.instructions }}\nToday's Date: {{ $now.toFormat('yyyy-MM-dd') }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are writing an email ON BEHALF OF the PROJECT LEAD. The email is sent directly by the Project Lead to an employee about a project responsibility assigned to them based on their designation.\n\nRULES:\n- Write in a professional, clear, realistic, concise, polite and action-oriented tone. It must NOT sound AI-generated.\n- Use ONLY the provided data. Never invent project information, deadlines, tasks, priority or instructions.\n- If a required field is empty/missing, explicitly write \"Not provided\" for that field instead of inventing a value.\n- Keep the responsibility specific to the employee's designation.\n- If Priority is empty, omit the Priority line entirely.\n- If Project-Specific Instructions is empty, omit that section entirely.\n\nSUBJECT:\n- Use format: \"Project Assignment Reminder – [Project Name]\".\n- If the deadline is within 3 days of today's date, instead use: \"Reminder – [Project Name] Assignment Due [Deadline]\".\n\nBODY (return as clean HTML for an email):\nDear [Employee Name],\n\nYou have been assigned a responsibility for the following project based on your role as [Designation].\n\n<b>Project Name:</b> [Project Name]\n\n<b>Project Information:</b>\n[Project Description]\n\n<b>Your Assigned Responsibility:</b>\n[Assigned Task]\n\n<b>Project Deadline:</b>\n[Deadline]\n\n<b>Priority:</b> [Priority]  (omit this line if no priority)\n\n[Include a \"Project-Specific Instructions:\" section only if instructions were provided]\n\nPlease review the project requirements and complete your assigned responsibility within the specified deadline. If you encounter any blockers, dependencies, or require clarification regarding the assigned work, please communicate with the Project Lead as early as possible.\n\nRegards,\n<b>PROJECT LEAD</b>\nProject Management Team\n\nReturn a JSON object with \"subject\" (plain text) and \"body_html\" (HTML string) fields."
+        }
+      },
+      "id": "53cc9402-7db1-4ed0-8b56-7b0290ca77ce",
+      "name": "Write Assignment Email",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "1c5312be-62cc-46b8-ade0-fa4ccad73d48",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        336
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "Yprj6vycp4hBsQcm",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body_html\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body_html\"]}"
+      },
+      "id": "0a3c3739-393c-458b-9980-55aac4f20698",
+      "name": "Email Output",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.sendTo || $json.employee_email || 'palamooradithyagoud@gmail.com, shivanallela363@gmail.com' }}",
+        "subject": "={{ $json.output.subject }}",
+        "message": "={{ $json.output.body_html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "PROJECT LEAD"
+        }
+      },
+      "id": "9c18a765-c56c-4f35-a23d-f2d5c693f3d5",
+      "name": "Send Assignment Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        112
+      ],
+      "webhookId": "a1baabdc-66ee-479d-a8a8-dcea2d676ef7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9MRsm6thms1XQkVc",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Project Assignment Form": {
+      "main": [
+        [
+          {
+            "node": "Get Employee By Designation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Employee By Designation": {
+      "main": [
+        [
+          {
+            "node": "Write Assignment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Assignment Email": {
+      "main": [
+        [
+          {
+            "node": "Send Assignment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write Assignment Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Output": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Write Assignment Email",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "62dcffd5-8f60-45c8-a992-023e62461116",
+  "meta": {
+    "instanceId": "dad151fafa78425126df9fa389f736fde224c32cd0f62359982caaa175839c73"
+  },
+  "nodeGroups": [],
+  "id": "vi6r4f78fbZpXGNf",
+  "tags": []
+}

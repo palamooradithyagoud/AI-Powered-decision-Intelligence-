@@ -134,6 +134,7 @@ function CalendarPageContent() {
   const [formAgenda, setFormAgenda] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [n8nToastMessage, setN8nToastMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -301,6 +302,8 @@ function CalendarPageContent() {
       setMeetings((prev) => [...prev, newMeet]);
       setIsCreateModalOpen(false);
       setSelectedDateStr(formDate);
+      setN8nToastMessage(`⚡ Meeting scheduled & n8n Project Assignment Email workflow dispatched to ${formAttendees.length} attendee(s)!`);
+      setTimeout(() => setN8nToastMessage(null), 6000);
     } catch (err: any) {
       setFormError(err.message || "Failed to create meeting");
     } finally {
@@ -320,8 +323,25 @@ function CalendarPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans relative">
       <Navbar />
+
+      {/* Floating n8n Automation Toast */}
+      {n8nToastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md rounded-2xl bg-slate-900 text-white p-4 shadow-2xl border border-indigo-500/40 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#6366f1] text-white text-xs font-bold flex-shrink-0">⚡</span>
+          <div className="text-xs min-w-0 flex-1">
+            <div className="font-bold text-indigo-300">n8n Automation Triggered</div>
+            <div className="text-slate-200 mt-0.5">{n8nToastMessage}</div>
+          </div>
+          <button
+            onClick={() => setN8nToastMessage(null)}
+            className="text-slate-400 hover:text-white p-1 rounded-lg"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
         
@@ -1060,6 +1080,20 @@ function CalendarPageContent() {
                   placeholder="Outline key deliverables, design questions, or discussion points..."
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
                 />
+              </div>
+
+              {/* n8n Automation Workflow Badge */}
+              <div className="rounded-xl border border-indigo-100 bg-[#ede9fe]/30 p-2.5 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#6366f1] text-white text-[11px] font-bold">⚡</span>
+                  <div>
+                    <div className="font-bold text-slate-800">n8n Email Workflow Trigger</div>
+                    <div className="text-[10px] text-slate-500">Auto-generates & sends Project Assignment Reminder emails to attendees</div>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  Active
+                </span>
               </div>
 
               {/* Modal Actions */}

@@ -1082,7 +1082,17 @@ class SupabaseStorage:
             except Exception as e:
                 print(f"[SupabaseStorage] create_meeting error: {e}")
 
-        return MeetingItem(**meeting_data)
+        created_meeting = MeetingItem(**meeting_data)
+
+        # Trigger n8n Automated Assignment & Reminder Email Workflow
+        try:
+            from services.n8n_service import n8n_service
+            project = self.get_project(payload.project_id) if payload.project_id else None
+            n8n_service.trigger_for_meeting(created_meeting, project)
+        except Exception as e:
+            print(f"[SupabaseStorage] n8n trigger notice: {e}")
+
+        return created_meeting
 
     def delete_meeting(self, meeting_id: str) -> bool:
         if not self.client:

@@ -460,3 +460,25 @@ export async function deleteMeeting(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete meeting");
 }
 
+// n8n Workflow Integration APIs
+export async function fetchN8nStatus(): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/integrations/n8n/status`, { cache: "no-store" });
+    if (!res.ok) return { is_configured: false };
+    return await res.json();
+  } catch {
+    return { is_configured: false };
+  }
+}
+
+export async function fetchN8nWorkflow(): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/integrations/n8n/workflow`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+
