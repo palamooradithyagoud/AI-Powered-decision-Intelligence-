@@ -1,217 +1,239 @@
 """
-n8n Workflow Integration Service
-Handles automated triggering of n8n 'Project Assignment Reminder Emails' workflows
-whenever a meeting is scheduled in the calendar or a sprint assignment is confirmed.
+n8n Production Meeting-Scheduling Integration Service
+Dispatches meeting creation requests to the active n8n production webhook:
+https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting
 """
 
 import os
 import json
-import threading
+import re
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from db.employees_data import get_employee_by_email_or_name
-from models.schemas import MeetingItem, Project
+from models.schemas import MeetingItem, MeetingCreate, Project
 
+# Production n8n Webhook URL provided by user
+PRODUCTION_N8N_WEBHOOK_URL = "https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting"
 
-# Target recipient emails requested by user
-TARGET_MEETING_EMAILS = [
+# Target recipient emails for meeting notifications
+DEFAULT_MEMBER_EMAILS = [
     "palamooradithyagoud@gmail.com",
     "shivanallela363@gmail.com"
 ]
 
+
+def convert_to_24h_format(time_str: str) -> str:
+    """
+    Converts various time string formats ('10:30 AM', '2:30 PM', '14:30', '9:00am')
+    to strict 24-hour 'HH:MM' format required by n8n.
+    """
+    if not time_str:
+        return "10:30"
+    
+    clean = time_str.strip()
+    
+    # Check standard 24h format HH:MM
+    if re.match(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", clean):
+        parts = clean.split(":")
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+    
+    # Try parsing 12-hour format with AM/PM
+    for fmt in ("%I:%M %p", "%I:%M%p", "%I %p", "%I:%M:%S %p", "%H:%M", "%H:%M:%S"):
+        try:
+            dt = datetime.strptime(clean.upper(), fmt)
+            return dt.strftime("%H:%M")
+        except ValueError:
+            continue
+            
+    # Regex fallback extraction
+    m = re.match(r"(\d{1,2}):?(\d{2})?\s*(AM|PM)?", clean, re.IGNORECASE)
+    if m:
+        hr = int(m.group(1))
+        mn = int(m.group(2)) if m.group(2) else 0
+        period = m.group(3)
+        if period:
+            if period.upper() == "PM" and hr < 12:
+                hr += 12
+            elif period.upper() == "AM" and hr == 12:
+                hr = 0
+        return f"{hr:02d}:{mn:02d}"
+        
+    return "10:30"
+
+
+def build_member_emails_string(attendees: List[str]) -> str:
+    """
+    Converts attendee array into a comma-separated email string.
+    Ensures palamooradithyagoud@gmail.com and shivanallela363@gmail.com are included.
+    """
+    emails: List[str] = list(DEFAULT_MEMBER_EMAILS)
+    
+    for att in attendees:
+        att_clean = att.strip()
+        if not att_clean:
+            continue
+        if "@" in att_clean and "." in att_clean:
+            if att_clean.lower() not in [e.lower() for e in emails]:
+                emails.append(att_clean)
+        else:
+            emp = get_employee_by_email_or_name(att_clean)
+            if emp and emp.get("email"):
+                emp_email = emp["email"]
+                if emp_email.lower() not in [e.lower() for e in emails]:
+                    emails.append(emp_email)
+                    
+    return ", ".join(emails)
+
+
 class N8nWorkflowService:
     def __init__(self):
-        # Default webhook matches the ID from user's n8n workflow definition
-        self.default_webhook_id = "30fd146d-5f97-4acf-993f-b2b7ded422b1"
-        self.webhook_url = os.getenv(
-            "N8N_WEBHOOK_URL",
-            f"http://localhost:5678/webhook/{self.default_webhook_id}"
-        )
-        self.target_emails = TARGET_MEETING_EMAILS
+        self.webhook_url = os.getenv("N8N_WEBHOOK_URL", PRODUCTION_N8N_WEBHOOK_URL)
+        self.default_emails = DEFAULT_MEMBER_EMAILS
 
     def get_status(self) -> Dict[str, Any]:
         """Returns the current n8n webhook configuration status."""
         return {
-            "workflow_name": "Project Assignment Reminder Emails",
+            "workflow_name": "Zoom Meeting Scheduling & Email Automation",
             "webhook_url": self.webhook_url,
-            "webhook_id": self.default_webhook_id,
-            "target_recipients": self.target_emails,
-            "is_configured": bool(self.webhook_url),
-            "target_nodes": [
-                "Project Assignment Form (Webhook Trigger)",
-                "Get Employee By Designation (Directory Lookup)",
-                "Write Assignment Email (AI LangChain Agent)",
-                "Send Assignment Email (Gmail OAuth2)"
+            "target_recipients": self.default_emails,
+            "is_configured": True,
+            "required_fields": [
+                "meeting_topic",
+                "meeting_date (YYYY-MM-DD)",
+                "start_time (HH:MM 24h)",
+                "duration_minutes (integer)",
+                "member_emails (comma-separated)"
             ]
         }
 
-    def generate_email_preview(
+    def validate_meeting_payload(
         self,
-        employee_name: str,
-        designation: str,
-        project_name: str,
-        project_description: str,
-        assigned_task: str,
-        deadline: str,
-        priority: str = "High",
-        instructions: str = ""
-    ) -> Dict[str, str]:
+        meeting_topic: str,
+        meeting_date: str,
+        start_time_24h: str,
+        duration_minutes: int,
+        member_emails: str
+    ) -> Optional[str]:
         """
-        Generates the email subject & HTML body strictly matching the n8n AI Agent's prompt guidelines.
+        Validates all fields before dispatching to n8n.
+        Returns error string if invalid, None if valid.
         """
-        subject = f"Project Assignment Reminder – {project_name}"
+        if not meeting_topic or not meeting_topic.strip():
+            return "Meeting topic cannot be empty."
         
-        instructions_section = ""
-        if instructions and instructions.strip():
-            instructions_section = f"<br/><br/><b>Project-Specific Instructions:</b><br/>{instructions.strip()}"
+        if not meeting_date or not re.match(r"^\d{4}-\d{2}-\d{2}$", meeting_date.strip()):
+            return "Meeting date must be in YYYY-MM-DD format."
+            
+        if not start_time_24h or not re.match(r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", start_time_24h.strip()):
+            return "Start time must be a valid 24-hour time in HH:MM format."
+            
+        if not isinstance(duration_minutes, int) or duration_minutes <= 0:
+            return "Duration must be a positive integer in minutes."
+            
+        if not member_emails or not member_emails.strip():
+            return "At least one member email is required."
+            
+        return None
 
-        body_html = f"""<div style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 600px;">
-  <p>Dear {employee_name},</p>
-  
-  <p>You have been assigned a responsibility for the following project based on your role as <b>{designation}</b>.</p>
-  
-  <p><b>Project Name:</b> {project_name}</p>
-  
-  <p><b>Project Information:</b><br/>{project_description}</p>
-  
-  <p><b>Your Assigned Responsibility:</b><br/>{assigned_task}</p>
-  
-  <p><b>Project Deadline:</b> {deadline}</p>
-  
-  <p><b>Priority:</b> <span style="color: #e11d48; font-weight: bold;">{priority}</span></p>
-  {instructions_section}
-  
-  <p>Please review the project requirements and complete your assigned responsibility within the specified deadline. If you encounter any blockers, dependencies, or require clarification regarding the assigned work, please communicate with the Project Lead as early as possible.</p>
-  
-  <p style="margin-top: 24px;">
-    Regards,<br/>
-    <strong style="color: #4f46e5;">PROJECT LEAD</strong><br/>
-    <span style="color: #64748b; font-size: 13px;">Project Management Team</span>
-  </p>
-</div>"""
+    def trigger_n8n_schedule_meeting(
+        self,
+        meeting_topic: str,
+        meeting_date: str,
+        start_time_str: str,
+        duration_minutes: int,
+        attendees: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Sends the JSON payload to n8n production webhook:
+        {
+          "meeting_topic": "Weekly Team Sync",
+          "meeting_date": "2026-09-01",
+          "start_time": "14:30",
+          "duration_minutes": 30,
+          "member_emails": "palamooradithyagoud@gmail.com, shivanallela363@gmail.com"
+        }
+        """
+        start_time_24h = convert_to_24h_format(start_time_str)
+        member_emails = build_member_emails_string(attendees)
+        
+        val_error = self.validate_meeting_payload(
+            meeting_topic=meeting_topic,
+            meeting_date=meeting_date,
+            start_time_24h=start_time_24h,
+            duration_minutes=duration_minutes,
+            member_emails=member_emails
+        )
+        if val_error:
+            raise ValueError(val_error)
 
-        return {
-            "subject": subject,
-            "body_html": body_html
+        payload = {
+            "meeting_topic": meeting_topic.strip(),
+            "meeting_date": meeting_date.strip(),
+            "start_time": start_time_24h,
+            "duration_minutes": int(duration_minutes),
+            "member_emails": member_emails
         }
 
-    def _send_webhook_request(self, payload: Dict[str, Any]) -> bool:
-        """Sends an HTTP POST payload to the n8n webhook URL with low timeout."""
-        if not self.webhook_url:
-            return False
+        print(f"[n8n Service] Dispatching to n8n Production Webhook ({self.webhook_url}):")
+        print(f"             Payload: {json.dumps(payload)}")
+
         try:
             req_data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
                 self.webhook_url,
                 data=req_data,
-                headers={"Content-Type": "application/json", "User-Agent": "KuiperAI-n8n-Client/1.0"}
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "KuiperAI-MeetingScheduler/1.0"
+                }
             )
-            with urllib.request.urlopen(req, timeout=2.5) as resp:
-                return resp.status in (200, 201, 204)
+            with urllib.request.urlopen(req, timeout=12.0) as resp:
+                resp_body = resp.read().decode("utf-8")
+                status_code = resp.status
+                
+                print(f"[n8n Service] Response {status_code}: {resp_body}")
+                
+                zoom_link = None
+                parsed_json = {}
+                try:
+                    parsed_json = json.loads(resp_body)
+                    # Extract Zoom link if returned by n8n workflow
+                    if isinstance(parsed_json, dict):
+                        zoom_link = (
+                            parsed_json.get("join_url") or
+                            parsed_json.get("zoom_url") or
+                            parsed_json.get("meeting_url") or
+                            parsed_json.get("zoom_join_url") or
+                            parsed_json.get("url")
+                        )
+                except Exception:
+                    pass
+
+                return {
+                    "status": "success",
+                    "status_code": status_code,
+                    "webhook_url": self.webhook_url,
+                    "payload_sent": payload,
+                    "n8n_response": parsed_json or resp_body,
+                    "zoom_link": zoom_link,
+                    "message": "n8n workflow triggered successfully. Zoom meeting created and email invitations sent."
+                }
+        except urllib.error.HTTPError as he:
+            err_msg = f"n8n HTTP Error {he.code}: {he.reason}"
+            print(f"[n8n Service] {err_msg}")
+            raise RuntimeError(err_msg)
+        except urllib.error.URLError as ue:
+            err_msg = f"n8n Network Error: {ue.reason}"
+            print(f"[n8n Service] {err_msg}")
+            raise RuntimeError(err_msg)
         except Exception as e:
-            # Expected if local n8n instance is not currently running
-            print(f"[n8n Service] Webhook delivery note ({self.webhook_url}): {e}")
-            return False
-
-    def trigger_for_meeting(
-        self,
-        meeting: MeetingItem,
-        project: Optional[Project] = None
-    ) -> Dict[str, Any]:
-        """
-        Dispatches assignment & reminder email payloads to n8n specifically to:
-        - palamooradithyagoud@gmail.com
-        - shivanallela363@gmail.com
-        Runs the network request asynchronously in a background thread to maintain instant UI response.
-        """
-        proj_name = meeting.project_name or (project.name if project else "General Sprint & Portfolio Sync")
-        proj_desc = (project.description if project else None) or meeting.agenda or f"Sprint Planning & Architecture Sync for {meeting.title}"
-        
-        attendee_summary = ", ".join(meeting.attendees) if meeting.attendees else "Sprint Team"
-        task_desc = f"{meeting.title} (Sync Time: {meeting.start_time} - {meeting.end_time})"
-        instructions = f"Scheduled {meeting.type} session on {meeting.date} ({meeting.start_time} - {meeting.end_time}). Attendees: {attendee_summary}. Agenda: {meeting.agenda or 'Review active sprint deliverables and system blockers.'}"
-
-        dispatched_items = []
-
-        # Send specifically to the designated recipient emails
-        for target_email in self.target_emails:
-            # Use attendee context or recipient name
-            recipient_label = "Adithya Goud" if "adithya" in target_email else ("Shiva Nallela" if "shiva" in target_email else "Team Lead")
-            recipient_designation = "Lead Engineer / Project Lead"
-
-            n8n_payload = {
-                "project_name": proj_name,
-                "project_description": proj_desc,
-                "designation": recipient_designation,
-                "assigned_task": task_desc,
-                "deadline": meeting.date,
-                "priority": "High",
-                "instructions": instructions,
-                # Metadata for n8n Gmail node
-                "employee_name": recipient_label,
-                "employee_email": target_email,
-                "sendTo": target_email,
-                "attendees": meeting.attendees,
-                "meeting_id": meeting.id,
-                "meeting_title": meeting.title,
-                "meeting_date": meeting.date,
-                "meeting_time": f"{meeting.start_time} - {meeting.end_time}"
-            }
-
-            email_preview = self.generate_email_preview(
-                employee_name=recipient_label,
-                designation=recipient_designation,
-                project_name=proj_name,
-                project_description=proj_desc,
-                assigned_task=task_desc,
-                deadline=meeting.date,
-                priority="High",
-                instructions=instructions
-            )
-
-            dispatched_items.append({
-                "recipient": recipient_label,
-                "email": target_email,
-                "designation": recipient_designation,
-                "payload": n8n_payload,
-                "email_preview": email_preview
-            })
-
-            # Fire webhook in background thread
-            t = threading.Thread(
-                target=self._send_webhook_request,
-                args=(n8n_payload,),
-                daemon=True
-            )
-            t.start()
-
-        # Log automated activity in storage if available
-        try:
-            from db.storage import storage
-            storage.create_activity(
-                event_type="project_accepted",
-                project_id=meeting.project_id or "general",
-                project_name=proj_name,
-                employee_id="emp_18",
-                employee_name="Ishita Rao",
-                employee_role="Project Lead",
-                message=f"⚡ n8n Workflow Dispatched: Assignment reminder emails queued for {len(dispatched_items)} attendee(s) on '{meeting.title}'"
-            )
-        except Exception as e:
-            print(f"[n8n Service] Activity log note: {e}")
-
-        return {
-            "status": "success",
-            "webhook_url": self.webhook_url,
-            "meeting_id": meeting.id,
-            "meeting_title": meeting.title,
-            "dispatched_count": len(dispatched_items),
-            "dispatches": dispatched_items
-        }
+            err_msg = f"n8n Execution Error: {str(e)}"
+            print(f"[n8n Service] {err_msg}")
+            raise RuntimeError(err_msg)
 
 
-# Singleton instance
+# Global singleton instance
 n8n_service = N8nWorkflowService()

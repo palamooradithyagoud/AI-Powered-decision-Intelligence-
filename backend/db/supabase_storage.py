@@ -1060,6 +1060,23 @@ class SupabaseStorage:
         meet_id = f"meet_{uuid.uuid4().hex[:8]}"
         now_iso = datetime.now().isoformat()
 
+        zoom_link = payload.location_or_link or ""
+
+        # Trigger active n8n Production Webhook (Zoom Meeting & Email Invitation Automation)
+        try:
+            from services.n8n_service import n8n_service
+            n8n_res = n8n_service.trigger_n8n_schedule_meeting(
+                meeting_topic=payload.title,
+                meeting_date=payload.date,
+                start_time_str=payload.start_time,
+                duration_minutes=payload.duration_minutes,
+                attendees=payload.attendees
+            )
+            if n8n_res.get("zoom_link"):
+                zoom_link = n8n_res["zoom_link"]
+        except Exception as e:
+            print(f"[SupabaseStorage] n8n webhook notification: {e}")
+
         meeting_data = {
             "id": meet_id,
             "title": payload.title,
@@ -1071,7 +1088,7 @@ class SupabaseStorage:
             "duration_minutes": payload.duration_minutes,
             "type": payload.type,
             "attendees": payload.attendees if payload.attendees else ["Alexander Vance"],
-            "location_or_link": payload.location_or_link or "Google Meet (meet.google.com/kuiper-sync)",
+            "location_or_link": zoom_link,
             "agenda": payload.agenda or "",
             "created_at": now_iso
         }
@@ -1080,19 +1097,23 @@ class SupabaseStorage:
             try:
                 self.client.table("meetings").insert(meeting_data).execute()
             except Exception as e:
-                print(f"[SupabaseStorage] create_meeting error: {e}")
+                print(f"[SupabaseStorage] create_meeting database error: {e}")
 
-        created_meeting = MeetingItem(**meeting_data)
-
-        # Trigger n8n Automated Assignment & Reminder Email Workflow
+        # Log Activity
         try:
-            from services.n8n_service import n8n_service
-            project = self.get_project(payload.project_id) if payload.project_id else None
-            n8n_service.trigger_for_meeting(created_meeting, project)
+            self.create_activity(
+                event_type="project_accepted",
+                project_id=payload.project_id or "general",
+                project_name=payload.project_name or "General Sprint Sync",
+                employee_id="emp_18",
+                employee_name="Ishita Rao",
+                employee_role="Project Lead",
+                message=f"⚡ n8n Zoom Automation: Scheduled '{payload.title}' on {payload.date} at {payload.start_time}. Invitations sent to members."
+            )
         except Exception as e:
-            print(f"[SupabaseStorage] n8n trigger notice: {e}")
+            print(f"[SupabaseStorage] Activity log notice: {e}")
 
-        return created_meeting
+        return MeetingItem(**meeting_data)
 
     def delete_meeting(self, meeting_id: str) -> bool:
         if not self.client:

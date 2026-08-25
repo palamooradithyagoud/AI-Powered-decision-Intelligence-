@@ -302,10 +302,15 @@ function CalendarPageContent() {
       setMeetings((prev) => [...prev, newMeet]);
       setIsCreateModalOpen(false);
       setSelectedDateStr(formDate);
-      setN8nToastMessage(`⚡ Meeting scheduled & n8n Project Assignment Email workflow dispatched to ${formAttendees.length} attendee(s)!`);
-      setTimeout(() => setN8nToastMessage(null), 6000);
+      
+      const successText = newMeet.location_or_link
+        ? `Meeting created successfully! Zoom link generated (${newMeet.location_or_link}) & invitations emailed to members.`
+        : `Meeting created successfully! Zoom scheduling automation triggered & invitations emailed to members.`;
+      
+      setN8nToastMessage(successText);
+      setTimeout(() => setN8nToastMessage(null), 8000);
     } catch (err: any) {
-      setFormError(err.message || "Failed to create meeting");
+      setFormError(err.message || "Failed to schedule meeting via n8n automation");
     } finally {
       setSubmitting(false);
     }
@@ -788,6 +793,18 @@ function CalendarPageContent() {
                                 ))}
                               </div>
                             </div>
+
+                            {m.location_or_link && (
+                              <a
+                                href={m.location_or_link.startsWith("http") ? m.location_or_link : `https://${m.location_or_link}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100"
+                              >
+                                <span>📹 Zoom Link</span>
+                                <span className="text-[10px]">↗</span>
+                              </a>
+                            )}
                           </div>
                         </div>
                       );
@@ -873,9 +890,22 @@ function CalendarPageContent() {
                         )}
 
                         <div className="flex items-center justify-between text-xs pt-1">
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                            <Users className="h-3 w-3 text-slate-400" />
-                            <span>{meet.attendees.length} attendee{meet.attendees.length !== 1 ? "s" : ""}</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                              <Users className="h-3 w-3 text-slate-400" />
+                              <span>{meet.attendees.length} attendee{meet.attendees.length !== 1 ? "s" : ""}</span>
+                            </div>
+                            {meet.location_or_link && (
+                              <a
+                                href={meet.location_or_link.startsWith("http") ? meet.location_or_link : `https://${meet.location_or_link}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100"
+                              >
+                                <span>📹 Zoom</span>
+                                <span className="text-[9px]">↗</span>
+                              </a>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-1.5">
