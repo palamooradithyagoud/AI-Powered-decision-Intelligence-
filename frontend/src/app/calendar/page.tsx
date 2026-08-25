@@ -95,6 +95,31 @@ const getLocalDateString = (d: Date = new Date()): string => {
   return `${y}-${m}-${day}`;
 };
 
+const getValidMeetingUrl = (raw: string | undefined | null): string | null => {
+  if (!raw || !raw.trim()) return null;
+  const text = raw.trim();
+
+  // 1. Direct http/https URL
+  const httpMatch = text.match(/https?:\/\/[^\s)>]+/i);
+  if (httpMatch) {
+    return httpMatch[0];
+  }
+
+  // 2. Parenthesized URL like "Google Meet (meet.google.com/abc)"
+  const parenMatch = text.match(/\((meet\.google\.com\/[^\s)]+|[^\s)]*zoom\.us\/[^\s)]+|teams\.microsoft\.com\/[^\s)]+)\)/i);
+  if (parenMatch && parenMatch[1]) {
+    return `https://${parenMatch[1]}`;
+  }
+
+  // 3. Domain path without protocol
+  const domainMatch = text.match(/([a-zA-Z0-9.-]+\.(?:zoom\.us|google\.com|microsoft\.com)\/[^\s)]+)/i);
+  if (domainMatch && domainMatch[1]) {
+    return `https://${domainMatch[1]}`;
+  }
+
+  return null;
+};
+
 function CalendarPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -794,17 +819,21 @@ function CalendarPageContent() {
                               </div>
                             </div>
 
-                            {m.location_or_link && (
-                              <a
-                                href={m.location_or_link.startsWith("http") ? m.location_or_link : `https://${m.location_or_link}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100"
-                              >
-                                <span>📹 Zoom Link</span>
-                                <span className="text-[10px]">↗</span>
-                              </a>
-                            )}
+                            {(() => {
+                              const validUrl = getValidMeetingUrl(m.location_or_link);
+                              if (!validUrl) return null;
+                              return (
+                                <a
+                                  href={validUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-xs"
+                                >
+                                  <span>📹 {validUrl.includes("zoom") ? "Join Zoom" : validUrl.includes("meet.google") ? "Join Google Meet" : "Join Call"}</span>
+                                  <span className="text-[10px]">↗</span>
+                                </a>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
@@ -895,17 +924,21 @@ function CalendarPageContent() {
                               <Users className="h-3 w-3 text-slate-400" />
                               <span>{meet.attendees.length} attendee{meet.attendees.length !== 1 ? "s" : ""}</span>
                             </div>
-                            {meet.location_or_link && (
-                              <a
-                                href={meet.location_or_link.startsWith("http") ? meet.location_or_link : `https://${meet.location_or_link}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100"
-                              >
-                                <span>📹 Zoom</span>
-                                <span className="text-[9px]">↗</span>
-                              </a>
-                            )}
+                            {(() => {
+                              const validUrl = getValidMeetingUrl(meet.location_or_link);
+                              if (!validUrl) return null;
+                              return (
+                                <a
+                                  href={validUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4f46e5] hover:underline bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shadow-xs"
+                                >
+                                  <span>📹 {validUrl.includes("zoom") ? "Zoom" : "Meet"}</span>
+                                  <span className="text-[9px]">↗</span>
+                                </a>
+                              );
+                            })()}
                           </div>
 
                           <div className="flex items-center gap-1.5">
