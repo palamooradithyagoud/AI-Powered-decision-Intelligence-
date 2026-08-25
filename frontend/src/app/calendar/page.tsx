@@ -93,6 +93,13 @@ const DEFAULT_ATTENDEE_PRESETS = [
   "Divya Menon"
 ];
 
+const getLocalDateString = (d: Date = new Date()): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 function CalendarPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -104,9 +111,12 @@ function CalendarPageContent() {
   // View state: 'month' | 'week' | 'agenda'
   const [viewMode, setViewMode] = useState<"month" | "week" | "agenda">("month");
 
-  // Date Navigation State
-  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 7, 24)); // Default to Aug 24, 2026
-  const [selectedDateStr, setSelectedDateStr] = useState<string>("2026-08-24");
+  // Date Navigation State - Real Current Date
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => getLocalDateString());
+
+  // Real Today String
+  const todayDateStr = useMemo(() => getLocalDateString(new Date()), []);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,7 +130,7 @@ function CalendarPageContent() {
   // Form State for creating a meeting
   const [formTitle, setFormTitle] = useState("");
   const [formProjectId, setFormProjectId] = useState<string>("general");
-  const [formDate, setFormDate] = useState<string>("2026-08-24");
+  const [formDate, setFormDate] = useState<string>(() => getLocalDateString());
   const [formStartTime, setFormStartTime] = useState<string>("10:30 AM");
   const [formEndTime, setFormEndTime] = useState<string>("11:30 AM");
   const [formDuration, setFormDuration] = useState<number>(60);
@@ -181,9 +191,9 @@ function CalendarPageContent() {
   };
 
   const handleToday = () => {
-    const today = new Date(2026, 7, 24);
-    setCurrentDate(today);
-    setSelectedDateStr("2026-08-24");
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDateStr(getLocalDateString(now));
   };
 
   // Calendar Grid Calculation
@@ -230,7 +240,6 @@ function CalendarPageContent() {
   const selectedDayMeetings = meetingsByDate[selectedDateStr] || [];
 
   // Metrics
-  const todayDateStr = "2026-08-24";
   const todayCount = (meetingsByDate[todayDateStr] || []).length;
   const totalCount = meetings.length;
   const uniqueParticipants = Array.from(new Set(meetings.flatMap((m) => m.attendees))).length;
@@ -556,7 +565,7 @@ function CalendarPageContent() {
                     const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
                     const dayMeets = meetingsByDate[dateString] || [];
                     const isSelected = selectedDateStr === dateString;
-                    const isToday = dateString === "2026-08-24";
+                    const isToday = dateString === todayDateStr;
 
                     return (
                       <div
@@ -645,11 +654,13 @@ function CalendarPageContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
                   {[...Array(7)].map((_, idx) => {
-                    const base = new Date(selectedDateStr);
-                    base.setDate(base.getDate() - base.getDay() + 1 + idx); // Start from Monday
-                    const dStr = base.toISOString().split("T")[0];
+                    const base = new Date(selectedDateStr + "T00:00:00");
+                    const dayOfWeek = (base.getDay() + 6) % 7;
+                    base.setDate(base.getDate() - dayOfWeek + idx);
+                    const dStr = getLocalDateString(base);
                     const meets = meetingsByDate[dStr] || [];
                     const isSelected = selectedDateStr === dStr;
+                    const isDayToday = dStr === todayDateStr;
 
                     return (
                       <div
@@ -659,14 +670,19 @@ function CalendarPageContent() {
                           "rounded-xl border p-2.5 min-h-[180px] space-y-2 cursor-pointer transition-all",
                           isSelected
                             ? "border-[#6366f1] bg-indigo-50/20 shadow-xs"
+                            : isDayToday
+                            ? "border-indigo-200 bg-indigo-50/10"
                             : "border-slate-200 bg-white hover:bg-slate-50"
                         )}
                       >
                         <div className="border-b border-slate-100 pb-1 flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-slate-500">
+                          <span className={cn("text-[11px] font-bold", isDayToday ? "text-[#4f46e5]" : "text-slate-500")}>
                             {base.toLocaleDateString("en-US", { weekday: "short" })}
                           </span>
-                          <span className="text-xs font-black text-slate-800">
+                          <span className={cn(
+                            "text-xs font-bold h-5 w-5 rounded-full flex items-center justify-center",
+                            isDayToday ? "bg-[#6366f1] text-white" : "text-slate-800"
+                          )}>
                             {base.getDate()}
                           </span>
                         </div>
