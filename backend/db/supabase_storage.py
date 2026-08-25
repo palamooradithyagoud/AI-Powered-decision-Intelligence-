@@ -529,11 +529,60 @@ class SupabaseStorage:
                     t_dict["created_at"] = now_iso
                     self.client.table("tasks").insert(t_dict).execute()
 
+                # Trigger n8n Project Assignment Email Workflow
+                try:
+                    from services.n8n_service import n8n_service
+                    assignment_id = f"assign_{project_id}"
+                    n8n_res = n8n_service.trigger_n8n_project_assignment(
+                        project_name=project.name,
+                        project_description=project.description or f"Sprint Execution & Deliverables for {project.name}",
+                        assignment_id=assignment_id,
+                        assigned_by="Project Lead"
+                    )
+                    
+                    # Log Activity
+                    if n8n_res.get("success"):
+                        msg = f"⚡ n8n Assignment Notification: Sent project assignment emails for '{project.name}' to project team members."
+                        if n8n_res.get("duplicate"):
+                            msg = f"⚡ n8n Assignment Notification: Assignment '{assignment_id}' already registered; duplicate notification suppressed."
+                        self.create_activity(
+                            event_type="project_accepted",
+                            project_id=project_id,
+                            project_name=project.name,
+                            employee_id="emp_18",
+                            employee_name="Ishita Rao",
+                            employee_role="Project Lead",
+                            message=msg
+                        )
+                except Exception as notify_err:
+                    print(f"[SupabaseStorage] n8n project assignment notification notice: {notify_err}")
+
                 return True
             except Exception as e:
                 print(f"[SupabaseStorage] confirm_task_allocation error: {e}")
                 return False
         return True
+
+    def notify_project_assignment(
+        self,
+        project_id: str,
+        assignment_id: Optional[str] = None,
+        assigned_by: str = "Project Lead"
+    ) -> Dict[str, Any]:
+        """Explicitly dispatches or retries the project assignment notification via n8n."""
+        project = self.get_project(project_id)
+        if not project:
+            raise ValueError(f"Project '{project_id}' not found.")
+
+        from services.n8n_service import n8n_service
+        use_assignment_id = assignment_id or f"assign_{project_id}"
+        res = n8n_service.trigger_n8n_project_assignment(
+            project_name=project.name,
+            project_description=project.description or f"Sprint Execution & Deliverables for {project.name}",
+            assignment_id=use_assignment_id,
+            assigned_by=assigned_by
+        )
+        return res
 
     def delete_project(self, project_id: str) -> bool:
         if not self.client:

@@ -12,7 +12,7 @@ from models.schemas import (
     TaskItem, TaskStatusUpdate, MeetingItem, MeetingCreate,
     EmployeeModel, LeadActionPayload, AITaskAllocationResponse,
     ConfirmTaskAllocationPayload, ActivityLog, ClaimTaskPayload,
-    ProjectSprintSummary
+    ProjectSprintSummary, ProjectAssignmentNotifyPayload
 )
 
 from db.storage import storage
@@ -380,13 +380,13 @@ def delete_meeting(meeting_id: str):
 # ================= N8N WORKFLOW INTEGRATION ENDPOINTS =================
 @app.get("/api/integrations/n8n/status")
 def get_n8n_status():
-    """Check n8n webhook configuration and target nodes."""
+    """Check n8n webhook configuration for Meeting Scheduling and Project Assignment workflows."""
     from services.n8n_service import n8n_service
     return n8n_service.get_status()
 
 @app.get("/api/integrations/n8n/workflow")
 def get_n8n_workflow():
-    """Retrieve the n8n workflow definition JSON."""
+    """Retrieve the n8n meeting workflow definition JSON."""
     workflow_path = os.path.join(os.path.dirname(__file__), "integrations", "n8n_assignment_workflow.json")
     if os.path.exists(workflow_path):
         import json
@@ -394,13 +394,67 @@ def get_n8n_workflow():
             return json.load(f)
     raise HTTPException(status_code=404, detail="n8n workflow definition not found")
 
+@app.get("/api/integrations/n8n/assignment-workflow")
+def get_n8n_assignment_workflow():
+    """Retrieve the n8n Project Assignment Notification workflow definition JSON."""
+    workflow_path = os.path.join(os.path.dirname(__file__), "integrations", "n8n_project_assignment_workflow.json")
+    if os.path.exists(workflow_path):
+        import json
+        with open(workflow_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    raise HTTPException(status_code=404, detail="n8n assignment workflow definition not found")
+
+@app.post("/api/projects/{project_id}/assign-notify")
+def notify_project_assignment_endpoint(project_id: str, payload: Optional[ProjectAssignmentNotifyPayload] = None):
+    """
+    Explicitly trigger or retry n8n Project Assignment Notification emails for a specific project.
+    Reuses stable assignment_id so retries do not send duplicate emails.
+    """
+    assignment_id = payload.assignment_id if payload else None
+    assigned_by = payload.assigned_by if (payload and payload.assigned_by) else "Project Lead"
+    try:
+        res = storage.notify_project_assignment(
+            project_id=project_id,
+            assignment_id=assignment_id,
+            assigned_by=assigned_by
+        )
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to dispatch assignment notification: {str(e)}")
+
+@app.post("/api/assignments/trigger-n8n")
+def trigger_custom_assignment_notification(payload: ProjectAssignmentNotifyPayload):
+    """
+    Directly dispatches a Project Assignment Notification payload to the n8n Production Webhook:
+    https://nallelashiva.app.n8n.cloud/webhook/project-assignment
+    """
+    if not payload.project_name:
+        raise HTTPException(status_code=400, detail="Missing required field: project_name")
+    
+    from services.n8n_service import n8n_service
+    res = n8n_service.trigger_n8n_project_assignment(
+        project_name=payload.project_name,
+        project_description=payload.project_description or "",
+        assignment_id=payload.assignment_id,
+        assigned_by=payload.assigned_by or "Project Lead"
+    )
+    return res
+
 @app.post("/api/integrations/n8n/trigger-meeting-reminder")
 def trigger_n8n_meeting_reminder(payload: MeetingCreate):
     """Explicitly trigger n8n Project Assignment & Reminder Email workflow for a meeting."""
     from services.n8n_service import n8n_service
     meeting_item = storage.create_meeting(payload)
     project = storage.get_project(payload.project_id) if payload.project_id else None
-    result = n8n_service.trigger_for_meeting(meeting_item, project)
+    result = n8n_service.trigger_n8n_schedule_meeting(
+        meeting_topic=meeting_item.title,
+        meeting_date=meeting_item.date,
+        start_time_str=meeting_item.start_time,
+        duration_minutes=meeting_item.duration_minutes,
+        attendees=meeting_item.attendees
+    )
     return {
         "status": "success",
         "meeting": meeting_item,

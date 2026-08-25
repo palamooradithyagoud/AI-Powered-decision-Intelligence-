@@ -481,4 +481,34 @@ export async function fetchN8nWorkflow(): Promise<any> {
   }
 }
 
+export async function fetchN8nAssignmentWorkflow(): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/integrations/n8n/assignment-workflow`, { cache: "no-store" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function notifyProjectAssignment(
+  projectId: string,
+  assignmentId?: string,
+  assignedBy: string = "Project Lead"
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/assign-notify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      assignment_id: assignmentId,
+      assigned_by: assignedBy
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to dispatch project assignment notification" }));
+    throw new Error(err.detail || "Failed to dispatch project assignment notification");
+  }
+  return res.json();
+}
+
 

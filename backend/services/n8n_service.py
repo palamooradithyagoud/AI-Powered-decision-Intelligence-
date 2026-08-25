@@ -1,7 +1,10 @@
 """
-n8n Production Meeting-Scheduling Integration Service
-Dispatches meeting creation requests to the active n8n production webhook:
-https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting
+n8n Production Integration Service
+Handles both active production webhooks:
+1. Meeting Scheduling Automation (Zoom + Email):
+   https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting
+2. Project Assignment Notification (Gmail OAuth2 to Team):
+   https://nallelashiva.app.n8n.cloud/webhook/project-assignment
 """
 
 import os
@@ -15,8 +18,9 @@ from datetime import datetime
 from db.employees_data import get_employee_by_email_or_name
 from models.schemas import MeetingItem, MeetingCreate, Project
 
-# Production n8n Webhook URL provided by user
-PRODUCTION_N8N_WEBHOOK_URL = "https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting"
+# Production n8n Webhook URLs
+PRODUCTION_MEETING_WEBHOOK_URL = "https://nallelashiva.app.n8n.cloud/webhook/schedule-meeting"
+PRODUCTION_ASSIGNMENT_WEBHOOK_URL = "https://nallelashiva.app.n8n.cloud/webhook/project-assignment"
 
 # Target recipient emails for meeting notifications
 DEFAULT_MEMBER_EMAILS = [
@@ -67,7 +71,7 @@ def convert_to_24h_format(time_str: str) -> str:
 def build_member_emails_string(attendees: List[str]) -> str:
     """
     Converts attendee array into a comma-separated email string.
-    Ensures palamooradithyagoud@gmail.com and shivanallela363@gmail.com are included.
+    Ensures target emails and attendee emails are cleanly formatted.
     """
     emails: List[str] = list(DEFAULT_MEMBER_EMAILS)
     
@@ -90,25 +94,31 @@ def build_member_emails_string(attendees: List[str]) -> str:
 
 class N8nWorkflowService:
     def __init__(self):
-        self.webhook_url = os.getenv("N8N_WEBHOOK_URL", PRODUCTION_N8N_WEBHOOK_URL)
+        self.meeting_webhook_url = os.getenv("N8N_WEBHOOK_URL", PRODUCTION_MEETING_WEBHOOK_URL)
+        self.assignment_webhook_url = os.getenv("N8N_ASSIGNMENT_WEBHOOK_URL", PRODUCTION_ASSIGNMENT_WEBHOOK_URL)
         self.default_emails = DEFAULT_MEMBER_EMAILS
 
     def get_status(self) -> Dict[str, Any]:
-        """Returns the current n8n webhook configuration status."""
+        """Returns the current n8n webhook configuration status for all integrations."""
         return {
-            "workflow_name": "Zoom Meeting Scheduling & Email Automation",
-            "webhook_url": self.webhook_url,
-            "target_recipients": self.default_emails,
-            "is_configured": True,
-            "required_fields": [
-                "meeting_topic",
-                "meeting_date (YYYY-MM-DD)",
-                "start_time (HH:MM 24h)",
-                "duration_minutes (integer)",
-                "member_emails (comma-separated)"
-            ]
+            "meeting_workflow": {
+                "name": "Zoom Meeting Scheduling & Email Automation",
+                "webhook_url": self.meeting_webhook_url,
+                "is_active": True
+            },
+            "assignment_workflow": {
+                "name": "Project Assignment Notification",
+                "webhook_url": self.assignment_webhook_url,
+                "is_active": True,
+                "recipients": [
+                    "shivanallela363@gmail.com (UI/UX Designer)",
+                    "charan1010107@gmail.com (Backend Engineer)",
+                    "palamooradithyagoud@gmail.com (Frontend Engineer)"
+                ]
+            }
         }
 
+    # ================= 1. MEETING SCHEDULING INTEGRATION =================
     def validate_meeting_payload(
         self,
         meeting_topic: str,
@@ -117,10 +127,7 @@ class N8nWorkflowService:
         duration_minutes: int,
         member_emails: str
     ) -> Optional[str]:
-        """
-        Validates all fields before dispatching to n8n.
-        Returns error string if invalid, None if valid.
-        """
+        """Validates all fields before dispatching to n8n meeting webhook."""
         if not meeting_topic or not meeting_topic.strip():
             return "Meeting topic cannot be empty."
         
@@ -146,16 +153,7 @@ class N8nWorkflowService:
         duration_minutes: int,
         attendees: List[str]
     ) -> Dict[str, Any]:
-        """
-        Sends the JSON payload to n8n production webhook:
-        {
-          "meeting_topic": "Weekly Team Sync",
-          "meeting_date": "2026-09-01",
-          "start_time": "14:30",
-          "duration_minutes": 30,
-          "member_emails": "palamooradithyagoud@gmail.com, shivanallela363@gmail.com"
-        }
-        """
+        """Sends the JSON payload to n8n meeting webhook."""
         start_time_24h = convert_to_24h_format(start_time_str)
         member_emails = build_member_emails_string(attendees)
         
@@ -177,30 +175,27 @@ class N8nWorkflowService:
             "member_emails": member_emails
         }
 
-        print(f"[n8n Service] Dispatching to n8n Production Webhook ({self.webhook_url}):")
+        print(f"[n8n Service] Dispatching to Meeting Webhook ({self.meeting_webhook_url}):")
         print(f"             Payload: {json.dumps(payload)}")
 
         try:
             req_data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
-                self.webhook_url,
+                self.meeting_webhook_url,
                 data=req_data,
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "KuiperAI-MeetingScheduler/1.0"
                 }
             )
-            with urllib.request.urlopen(req, timeout=12.0) as resp:
+            with urllib.request.urlopen(req, timeout=15.0) as resp:
                 resp_body = resp.read().decode("utf-8")
                 status_code = resp.status
-                
-                print(f"[n8n Service] Response {status_code}: {resp_body}")
                 
                 zoom_link = None
                 parsed_json = {}
                 try:
                     parsed_json = json.loads(resp_body)
-                    # Extract Zoom link if returned by n8n workflow
                     if isinstance(parsed_json, dict):
                         zoom_link = (
                             parsed_json.get("join_url") or
@@ -215,11 +210,11 @@ class N8nWorkflowService:
                 return {
                     "status": "success",
                     "status_code": status_code,
-                    "webhook_url": self.webhook_url,
+                    "webhook_url": self.meeting_webhook_url,
                     "payload_sent": payload,
                     "n8n_response": parsed_json or resp_body,
                     "zoom_link": zoom_link,
-                    "message": "n8n workflow triggered successfully. Zoom meeting created and email invitations sent."
+                    "message": "n8n meeting workflow triggered successfully."
                 }
         except urllib.error.HTTPError as he:
             err_msg = f"n8n HTTP Error {he.code}: {he.reason}"
@@ -233,6 +228,139 @@ class N8nWorkflowService:
             err_msg = f"n8n Execution Error: {str(e)}"
             print(f"[n8n Service] {err_msg}")
             raise RuntimeError(err_msg)
+
+    # ================= 2. PROJECT ASSIGNMENT NOTIFICATION INTEGRATION =================
+    def trigger_n8n_project_assignment(
+        self,
+        project_name: str,
+        project_description: Optional[str] = "",
+        assignment_id: Optional[str] = None,
+        assigned_by: str = "Project Lead"
+    ) -> Dict[str, Any]:
+        """
+        Dispatches Project Assignment Notification to n8n Production Webhook:
+        https://nallelashiva.app.n8n.cloud/webhook/project-assignment
+        
+        Payload:
+        {
+          "assignment_id": "assign_001",
+          "project_name": "Civic Buzz",
+          "project_description": "Village civic issue management system",
+          "assigned_by": "Project Lead"
+        }
+        
+        Handles:
+        - Validation of project_name (must not be empty)
+        - Stable assignment_id generation for duplicate protection
+        - Detection of duplicate assignment responses
+        - Timeout window of 30 seconds for sequential email delivery
+        """
+        # Validate project_name
+        if not project_name or not project_name.strip():
+            raise ValueError("Missing required field: project_name")
+
+        clean_project_name = project_name.strip()
+        clean_project_desc = (project_description or "").strip()
+        clean_assigned_by = (assigned_by or "Project Lead").strip()
+        
+        # Use stable assignment ID or generate fallback
+        clean_assignment_id = (assignment_id or f"assign_{clean_project_name.lower().replace(' ', '_')}").strip()
+
+        payload = {
+            "assignment_id": clean_assignment_id,
+            "project_name": clean_project_name,
+            "project_description": clean_project_desc,
+            "assigned_by": clean_assigned_by
+        }
+
+        print(f"[n8n Service] Dispatching to Project Assignment Webhook ({self.assignment_webhook_url}):")
+        print(f"             Payload: {json.dumps(payload)}")
+
+        try:
+            req_data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                self.assignment_webhook_url,
+                data=req_data,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "KuiperAI-AssignmentNotifier/1.0"
+                }
+            )
+            
+            # n8n sends 3 sequential emails, allowing up to 30 seconds
+            with urllib.request.urlopen(req, timeout=30.0) as resp:
+                resp_body = resp.read().decode("utf-8")
+                status_code = resp.status
+                
+                parsed_json = {}
+                try:
+                    parsed_json = json.loads(resp_body)
+                except Exception:
+                    pass
+
+                is_duplicate = parsed_json.get("duplicate", False) if isinstance(parsed_json, dict) else False
+                is_success = parsed_json.get("success", status_code == 200) if isinstance(parsed_json, dict) else (status_code == 200)
+                message = parsed_json.get("message", "Project assignment processed") if isinstance(parsed_json, dict) else resp_body
+
+                print(f"[n8n Service] Assignment Webhook Response ({status_code}): success={is_success}, duplicate={is_duplicate}")
+
+                return {
+                    "success": is_success,
+                    "duplicate": is_duplicate,
+                    "status": "duplicate" if is_duplicate else ("success" if is_success else "error"),
+                    "status_code": status_code,
+                    "message": message,
+                    "project_name": clean_project_name,
+                    "assignment_id": clean_assignment_id,
+                    "recipients": parsed_json.get("recipients", []) if isinstance(parsed_json, dict) else [],
+                    "payload_sent": payload,
+                    "n8n_response": parsed_json or resp_body
+                }
+
+        except urllib.error.HTTPError as he:
+            err_body = he.read().decode("utf-8") if he.fp else ""
+            err_msg = f"n8n HTTP Error {he.code}: {he.reason}"
+            try:
+                err_json = json.loads(err_body)
+                if "message" in err_json:
+                    err_msg = err_json["message"]
+            except Exception:
+                pass
+                
+            print(f"[n8n Service] {err_msg}")
+            return {
+                "success": False,
+                "duplicate": False,
+                "status": "error",
+                "status_code": he.code,
+                "message": err_msg,
+                "assignment_id": clean_assignment_id,
+                "payload_sent": payload
+            }
+        except urllib.error.URLError as ue:
+            err_msg = f"n8n Network Error: {ue.reason}"
+            print(f"[n8n Service] {err_msg}")
+            return {
+                "success": False,
+                "duplicate": False,
+                "status": "network_error",
+                "status_code": 0,
+                "message": err_msg,
+                "assignment_id": clean_assignment_id,
+                "payload_sent": payload
+            }
+        except Exception as e:
+            err_msg = f"n8n Assignment Error: {str(e)}"
+            print(f"[n8n Service] {err_msg}")
+            return {
+                "success": False,
+                "duplicate": False,
+                "status": "error",
+                "status_code": 500,
+                "message": err_msg,
+                "assignment_id": clean_assignment_id,
+                "payload_sent": payload
+            }
 
 
 # Global singleton instance

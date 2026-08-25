@@ -338,3 +338,10 @@ class ProjectSprintSummary(BaseModel):
     employee_breakdown: List[EmployeeSprintStats]
     stages: Dict[str, str]
     recent_activities: List[ActivityLog]
+
+# n8n Project Assignment Notification Models
+class ProjectAssignmentNotifyPayload(BaseModel):
+    assignment_id: Optional[str] = None
+    project_name: Optional[str] = None
+    project_description: Optional[str] = ""
+    assigned_by: Optional[str] = "Project Lead"

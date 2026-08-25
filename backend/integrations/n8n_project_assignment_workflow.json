@@ -1,0 +1,429 @@
+{
+  "name": "Project Assignment Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "project-assignment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1aa7e60b-0ef0-448c-9a25-b79884394388",
+      "name": "Assignment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        192
+      ],
+      "webhookId": "cd73a68e-2297-49a7-a41b-b0c211486c04"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize + validate incoming assignment payload\nconst body = ($input.first().json.body) || $input.first().json || {};\n\nconst clean = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\nconst project_name = clean(body.project_name);\nconst project_description = clean(body.project_description);\nconst assigned_by = clean(body.assigned_by) || 'Project Lead';\n\n// Duplicate protection key. If none supplied, generate a per-run key so\n// distinct runs are never falsely deduped against each other.\nconst assignment_id = clean(body.assignment_id) || ('auto-' + $execution.id);\nconst has_dedup_id = clean(body.assignment_id) !== '';\n\n// Validation: at minimum a project name is required\nlet is_valid = true;\nlet error_message = '';\nif (!project_name) {\n  is_valid = false;\n  error_message = 'Missing required field: project_name';\n}\n\nreturn [{\n  json: {\n    is_valid,\n    error_message,\n    assignment_id,\n    has_dedup_id,\n    project_name,\n    project_description,\n    assigned_by,\n  },\n}];"
+      },
+      "id": "21078280-b6d3-40af-85fd-4be3bd26ed1c",
+      "name": "Validate Assignment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valid-check",
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1eaf1a57-591f-4d3a-8989-006663928b20",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "hAQawowJb7XeoWAA",
+          "cachedResultName": "project_assignment_notifications"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "assignment_id",
+              "keyValue": "={{ $json.assignment_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "8080b97e-1066-4b91-b243-e0a1054a08d4",
+      "name": "Lookup Existing Assignment",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        384
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dup-check",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c21f85ac-05f2-4aa4-8a0b-94cd3f59ff1d",
+      "name": "Already Sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  duplicate: true,\n  message: \"Assignment already processed; emails were not sent again\",\n  assignment_id: $('Validate Assignment').item.json.assignment_id\n}) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "385a3c89-681a-482a-bf06-a9192bd2de95",
+      "name": "Respond Duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fan out to all three team members. Each gets the same project but their\n// own name + designation. Extend this list to add more recipients later.\nconst v = $('Validate Assignment').first().json;\n\nconst RECIPIENTS = [\n  { recipient: 'shivanallela363@gmail.com', name: 'Shiva Nallela', designation: 'UI/UX Designer' },\n  { recipient: 'charan1010107@gmail.com', name: 'Charan', designation: 'Backend Engineer' },\n  { recipient: 'palamooradithyagoud@gmail.com', name: 'Palamoor Adithya Goud', designation: 'Frontend Engineer' },\n];\n\nreturn RECIPIENTS.map((r) => ({\n  json: {\n    recipient: r.recipient,\n    name: r.name,\n    designation: r.designation,\n    project_name: v.project_name,\n    project_description: v.project_description,\n    assigned_by: v.assigned_by,\n    assignment_id: v.assignment_id,\n  },\n}));"
+      },
+      "id": "355af805-c34f-4a4d-b9b4-6b59ee118791",
+      "name": "Build Recipients",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipient }}",
+        "subject": "=Project Assignment: You have been assigned to {{ $json.project_name }}",
+        "message": "=<div style=\"font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto;\">\n  <h2 style=\"color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 8px;\">Project Assignment</h2>\n  <p>Hello <strong>{{ $json.name }}</strong>,</p>\n  <p>You have been assigned to the following project by the Project Lead.</p>\n  <table style=\"border-collapse: collapse; width: 100%; margin: 16px 0;\">\n    <tr><td style=\"padding: 8px 12px; background: #f4f6f8; font-weight: bold; width: 40%;\">Project</td><td style=\"padding: 8px 12px; border-bottom: 1px solid #eee;\">{{ $json.project_name }}</td></tr>\n    <tr><td style=\"padding: 8px 12px; background: #f4f6f8; font-weight: bold;\">Your Role / Designation</td><td style=\"padding: 8px 12px; border-bottom: 1px solid #eee;\">{{ $json.designation }}</td></tr>\n    <tr><td style=\"padding: 8px 12px; background: #f4f6f8; font-weight: bold;\">Assigned By</td><td style=\"padding: 8px 12px; border-bottom: 1px solid #eee;\">{{ $json.assigned_by }}</td></tr>\n  </table>\n  <p style=\"font-weight: bold; margin-bottom: 4px;\">Project Description:</p>\n  <p style=\"margin-top: 0; color: #444;\">{{ $json.project_description }}</p>\n  <p>Please review the project requirements and begin working on the tasks related to your assigned role. If you have any questions regarding the project or your responsibilities, please contact the Project Lead.</p>\n  <p style=\"margin-top: 24px;\">Best regards,<br/><strong>Project Lead</strong></p>\n</div>",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Project Lead",
+          "replyTo": "shivanallella@gmail.com"
+        }
+      },
+      "id": "1d89e9f4-3b52-4a61-bdbf-64bc9e8cf561",
+      "name": "Send Assignment Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        192
+      ],
+      "webhookId": "c8bf72c7-cc7d-44bb-a663-623d57dca733",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "uvOr9anHW1bD9VeZ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "hAQawowJb7XeoWAA",
+          "cachedResultName": "project_assignment_notifications"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "assignment_id": "={{ $('Validate Assignment').first().json.assignment_id }}",
+            "recipient": "={{ $('Build Recipients').all().map(i => i.json.recipient).join(', ') }}",
+            "project_name": "={{ $('Validate Assignment').first().json.project_name }}",
+            "employee_name": "All team members",
+            "assigned_role": "All designations",
+            "sent_at": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "assignment_id",
+              "displayName": "assignment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "project_name",
+              "displayName": "project_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employee_name",
+              "displayName": "employee_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_role",
+              "displayName": "assigned_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent_at",
+              "displayName": "sent_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "451477e7-09ed-41ba-a0b4-3d5b7c5d2a91",
+      "name": "Record Sent Assignment",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        192
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  message: \"Project assignment emails sent successfully\",\n  project_name: $('Validate Assignment').first().json.project_name,\n  assignment_id: $('Validate Assignment').first().json.assignment_id,\n  recipients: $('Build Recipients').all().map(i => ({ email: i.json.recipient, designation: i.json.designation }))\n}) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "47abb5ab-63d3-4e77-a9f0-2c8ffc54def7",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        192
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: false,\n  message: $('Validate Assignment').item.json.error_message || \"Unable to send project assignment emails\"\n}) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "ee8a1097-56c9-420f-ab90-3230e0a6a391",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Assignment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Assignment": {
+      "main": [
+        [
+          {
+            "node": "Is Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "Lookup Existing Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Existing Assignment": {
+      "main": [
+        [
+          {
+            "node": "Already Sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already Sent?": {
+      "main": [
+        [
+          {
+            "node": "Respond Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Recipients": {
+      "main": [
+        [
+          {
+            "node": "Send Assignment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Assignment Email": {
+      "main": [
+        [
+          {
+            "node": "Record Sent Assignment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Sent Assignment": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c73bfcb9-59b4-42cc-8d12-1732a3258ce0",
+  "meta": {
+    "instanceId": "7035048415beae19ef365e2ce4bcea4cd7851111fde2b4f9fbb9aa4b0eb72b77"
+  },
+  "nodeGroups": [],
+  "id": "SHLXs4vsodsV5u9I",
+  "tags": []
+}
