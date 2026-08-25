@@ -1049,85 +1049,10 @@ class SupabaseStorage:
             res = query.order("date").order("start_time").execute()
             if res.data and len(res.data) > 0:
                 return [MeetingItem(**m) for m in res.data if isinstance(m, dict)]
-
-            # If no meetings exist yet, seed realistic meetings anchored to real current dates
-            if not date and not project_id:
-                from datetime import timedelta
-                today = datetime.now()
-                demo_meetings = [
-                    MeetingCreate(
-                        title="Daily Sprint Standup & Blocker Sync",
-                        project_id=None,
-                        project_name="General Sprint & Portfolio Sync",
-                        date=today.strftime("%Y-%m-%d"),
-                        start_time="10:00 AM",
-                        end_time="10:30 AM",
-                        duration_minutes=30,
-                        type="Sprint Planning",
-                        attendees=["Arjun Reddy", "Ishita Rao", "Rahul Kumar", "Sneha Patel"],
-                        location_or_link="Google Meet (meet.google.com/kuiper-sync)",
-                        agenda="Review sprint deliverables, active blockers, and AI task allocations."
-                    ),
-                    MeetingCreate(
-                        title="Architecture & API Design Review",
-                        project_id=None,
-                        project_name="General Sprint & Portfolio Sync",
-                        date=today.strftime("%Y-%m-%d"),
-                        start_time="02:00 PM",
-                        end_time="03:00 PM",
-                        duration_minutes=60,
-                        type="Architecture Sync",
-                        attendees=["Aditya Joshi", "Sneha Patel", "Divya Rao", "Varun Reddy"],
-                        location_or_link="Google Meet (meet.google.com/kuiper-arch)",
-                        agenda="Deep-dive into microservices boundaries, database schemas, and caching."
-                    ),
-                    MeetingCreate(
-                        title="1-on-1 Engineering Review",
-                        project_id=None,
-                        project_name="General Sprint & Portfolio Sync",
-                        date=(today + timedelta(days=1)).strftime("%Y-%m-%d"),
-                        start_time="11:00 AM",
-                        end_time="11:45 AM",
-                        duration_minutes=45,
-                        type="1-on-1 Review",
-                        attendees=["Ishita Rao", "Rahul Kumar"],
-                        location_or_link="Google Meet (meet.google.com/kuiper-1on1)",
-                        agenda="Review component progress, sprint velocity, and capacity."
-                    ),
-                    MeetingCreate(
-                        title="Executive Decision Briefing & Milestones",
-                        project_id=None,
-                        project_name="General Sprint & Portfolio Sync",
-                        date=(today + timedelta(days=2)).strftime("%Y-%m-%d"),
-                        start_time="03:30 PM",
-                        end_time="04:30 PM",
-                        duration_minutes=60,
-                        type="Executive Briefing",
-                        attendees=["Arjun Reddy", "Ishita Rao", "Keerthi Menon"],
-                        location_or_link="Boardroom A & Google Meet",
-                        agenda="Review portfolio ROI, feasibility radar, and delivery milestones."
-                    ),
-                    MeetingCreate(
-                        title="UI/UX Interactive Design Critique",
-                        project_id=None,
-                        project_name="General Sprint & Portfolio Sync",
-                        date=(today + timedelta(days=4)).strftime("%Y-%m-%d"),
-                        start_time="04:00 PM",
-                        end_time="05:00 PM",
-                        duration_minutes=60,
-                        type="Design Review",
-                        attendees=["Ananya Rao", "Harini Gupta", "Rahul Kumar"],
-                        location_or_link="Figma Live Session & Meet",
-                        agenda="Figma prototype walkthrough for developer kanban and dashboard."
-                    )
-                ]
-                created = []
-                for dm in demo_meetings:
-                    created.append(self.create_meeting(dm))
-                return created
-
             return []
         except Exception as e:
+            print(f"[SupabaseStorage] list_meetings error: {e}")
+            return []
             print(f"[SupabaseStorage] list_meetings error: {e}")
             return []
 
