@@ -27,6 +27,42 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  icon: "bell" | "task" | "message";
+  read: boolean;
+}
+
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "notif_1",
+    title: "Deadline approaching",
+    description: "Sprint sync meeting in 1 hour.",
+    time: "5m ago",
+    icon: "bell",
+    read: false,
+  },
+  {
+    id: "notif_2",
+    title: "Task update",
+    description: "2 deliverables completed, 3 in progress.",
+    time: "1h ago",
+    icon: "task",
+    read: false,
+  },
+  {
+    id: "notif_3",
+    title: "New sprint message",
+    description: "Sprint lead updated architecture requirements.",
+    time: "3h ago",
+    icon: "message",
+    read: false,
+  },
+];
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -36,8 +72,19 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [selectedDay, setSelectedDay] = useState<number>(24);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleMarkSingleRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
 
   useEffect(() => {
     async function loadNavMeetings() {
@@ -250,61 +297,83 @@ export default function Navbar() {
                 setIsDropdownOpen(false);
               }}
               className={cn(
-                "relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm",
+                "relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm cursor-pointer",
                 isNotificationsOpen && "border-[#6366f1] bg-[#ede9fe] text-[#6366f1]"
               )}
               title="Notifications"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#6366f1]" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#6366f1] ring-2 ring-white animate-pulse" />
+              )}
             </button>
 
             {/* Notifications Popover */}
             {isNotificationsOpen && (
-              <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800">
+              <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl space-y-3 text-slate-800 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-900">Notifications</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-[#4f46e5]">
-                      3 New
-                    </span>
+                    {unreadCount > 0 ? (
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-[#4f46e5] border border-indigo-100">
+                        {unreadCount} New
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-500">
+                        All read
+                      </span>
+                    )}
                   </div>
-                  <button className="text-[11px] text-[#6366f1] hover:underline font-medium">Mark all read</button>
+                  {unreadCount > 0 ? (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[11px] text-[#6366f1] hover:text-[#4f46e5] hover:underline font-semibold cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">All caught up</span>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
-                    <div className="h-7 w-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Bell className="h-3.5 w-3.5" />
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleMarkSingleRead(notif.id)}
+                      className={cn(
+                        "flex items-start gap-2.5 rounded-xl p-2.5 transition-colors cursor-pointer border",
+                        notif.read
+                          ? "bg-slate-50/50 border-slate-100 opacity-60 hover:opacity-100"
+                          : "bg-indigo-50/20 border-indigo-100/60 hover:bg-indigo-50/40"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                          notif.icon === "bell" && "bg-rose-50 text-rose-500",
+                          notif.icon === "task" && "bg-emerald-50 text-emerald-600",
+                          notif.icon === "message" && "bg-blue-50 text-blue-500"
+                        )}
+                      >
+                        {notif.icon === "bell" && <Bell className="h-3.5 w-3.5" />}
+                        {notif.icon === "task" && <CheckCircle2 className="h-3.5 w-3.5" />}
+                        {notif.icon === "message" && <MessageSquare className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className="text-xs min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className={cn("font-semibold truncate", notif.read ? "text-slate-600" : "text-slate-900")}>
+                            {notif.title}
+                          </div>
+                          {!notif.read && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1] flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{notif.description}</div>
+                        <div className="text-[9px] text-slate-400 mt-1">{notif.time}</div>
+                      </div>
                     </div>
-                    <div className="text-xs min-w-0">
-                      <div className="font-semibold text-slate-900">Deadline approaching</div>
-                      <div className="text-[11px] text-slate-500">Re-branding meeting in 1 hour.</div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">5m ago</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
-                    <div className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="text-xs min-w-0">
-                      <div className="font-semibold text-slate-900">Task update</div>
-                      <div className="text-[11px] text-slate-500">2 completed, 3 pending.</div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">1h ago</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 rounded-xl p-2 hover:bg-slate-50 transition-colors">
-                    <div className="h-7 w-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <MessageSquare className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="text-xs min-w-0">
-                      <div className="font-semibold text-slate-900">New message</div>
-                      <div className="text-[11px] text-slate-500">Sarah: "Design files are ready."</div>
-                      <div className="text-[9px] text-slate-400 mt-0.5">3h ago</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
