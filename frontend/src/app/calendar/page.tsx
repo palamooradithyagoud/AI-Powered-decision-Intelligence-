@@ -13,15 +13,10 @@ import {
   Plus,
   Search,
   Filter,
-  Video,
-  MapPin,
   Sparkles,
   ChevronLeft,
   ChevronRight,
   Trash2,
-  ExternalLink,
-  Copy,
-  Check,
   Layers,
   Briefcase,
   AlertCircle,
@@ -125,7 +120,6 @@ function CalendarPageContent() {
 
   // Schedule Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [copiedMeetId, setCopiedMeetId] = useState<string | null>(null);
 
   // Form State for creating a meeting
   const [formTitle, setFormTitle] = useState("");
@@ -137,7 +131,6 @@ function CalendarPageContent() {
   const [formType, setFormType] = useState<MeetingType>("Sprint Planning");
   const [formAttendees, setFormAttendees] = useState<string[]>(["Arjun Reddy", "Ishita Rao"]);
   const [customAttendee, setCustomAttendee] = useState("");
-  const [formLocation, setFormLocation] = useState("Google Meet (meet.google.com/kuiper-sync)");
   const [formAgenda, setFormAgenda] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -300,7 +293,7 @@ function CalendarPageContent() {
         duration_minutes: formDuration,
         type: formType,
         attendees: formAttendees,
-        location_or_link: formLocation || "Google Meet (meet.google.com/kuiper-sync)",
+        location_or_link: "",
         agenda: formAgenda.trim(),
       };
 
@@ -324,12 +317,6 @@ function CalendarPageContent() {
         alert("Failed to delete meeting");
       }
     }
-  };
-
-  const handleCopyLink = (meet: MeetingItem) => {
-    navigator.clipboard.writeText(meet.location_or_link);
-    setCopiedMeetId(meet.id);
-    setTimeout(() => setCopiedMeetId(null), 2000);
   };
 
   return (
@@ -761,21 +748,9 @@ function CalendarPageContent() {
 
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <button
-                                onClick={() => handleCopyLink(m)}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"
-                                title="Copy link"
-                              >
-                                {copiedMeetId === m.id ? (
-                                  <Check className="h-4 w-4 text-emerald-600" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </button>
-
-                              <button
                                 onClick={() => handleDeleteMeeting(m.id, m.title)}
                                 className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors cursor-pointer"
-                                title="Delete meeting"
+                                title="Cancel meeting"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -793,16 +768,6 @@ function CalendarPageContent() {
                                 ))}
                               </div>
                             </div>
-
-                            <a
-                              href={m.location_or_link.includes("http") ? m.location_or_link : `https://${m.location_or_link}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-1.5 text-xs font-bold text-[#6366f1] hover:underline"
-                            >
-                              <Video className="h-3.5 w-3.5" />
-                              <span>Join Call</span>
-                            </a>
                           </div>
                         </div>
                       );
@@ -895,34 +860,12 @@ function CalendarPageContent() {
 
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => handleCopyLink(meet)}
-                              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
-                              title="Copy link"
-                            >
-                              {copiedMeetId === meet.id ? (
-                                <Check className="h-3.5 w-3.5 text-emerald-600" />
-                              ) : (
-                                <Copy className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-
-                            <button
                               onClick={() => handleDeleteMeeting(meet.id, meet.title)}
                               className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                              title="Delete"
+                              title="Cancel meeting"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
-
-                            <a
-                              href={meet.location_or_link.includes("http") ? meet.location_or_link : `https://${meet.location_or_link}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-1 rounded-lg bg-[#6366f1] text-white px-2.5 py-1 text-[11px] font-bold hover:bg-[#4f46e5] transition-colors shadow-xs"
-                            >
-                              <Video className="h-3 w-3" />
-                              <span>Join</span>
-                            </a>
                           </div>
                         </div>
                       </div>
@@ -1105,18 +1048,6 @@ function CalendarPageContent() {
                     Add
                   </button>
                 </div>
-              </div>
-
-              {/* Meeting Link / Location */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Location / Video Call Link</label>
-                <input
-                  type="text"
-                  value={formLocation}
-                  onChange={(e) => setFormLocation(e.target.value)}
-                  placeholder="e.g. Google Meet (meet.google.com/kuiper-sync) or Room 4A"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                />
               </div>
 
               {/* Agenda / Objectives */}
