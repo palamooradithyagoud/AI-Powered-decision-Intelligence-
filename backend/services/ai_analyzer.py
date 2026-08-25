@@ -192,7 +192,7 @@ Return ONLY a valid JSON object with the following exact keys and structure:
         requirements: str
     ) -> Optional[AIAnalysisResult]:
         prompt = self._build_analysis_prompt(name, description, expected_days, available_employees, requirements)
-        models_to_try = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+        models_to_try = ['gemini-3.6-flash']
         for mod in models_to_try:
             try:
                 response = self.client.models.generate_content(

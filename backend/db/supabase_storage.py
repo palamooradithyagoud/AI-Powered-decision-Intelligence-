@@ -302,6 +302,23 @@ class SupabaseStorage:
                         self.client.table("tasks").insert(task_dict).execute()
                     except Exception as task_err:
                         print(f"[SupabaseStorage] Task insert notice for {t.title}: {task_err}")
+
+                # Automatically trigger n8n Project Assignment Email Notification for team
+                def _dispatch_create_notify():
+                    try:
+                        from services.n8n_service import n8n_service
+                        n8n_service.trigger_n8n_project_assignment(
+                            project_name=data.name,
+                            project_description=data.description or f"Sprint Execution & Deliverables for {data.name}",
+                            assignment_id=f"assign_{proj_id}",
+                            assigned_by="Project Lead"
+                        )
+                    except Exception as notify_err:
+                        print(f"[SupabaseStorage] n8n project assignment error on create: {notify_err}")
+
+                import threading
+                threading.Thread(target=_dispatch_create_notify, daemon=True).start()
+
             except Exception as e:
                 print(f"[SupabaseStorage] create_project error: {e}")
 
@@ -372,6 +389,23 @@ class SupabaseStorage:
             try:
                 row_data = self._serialize_project_row(updated_project)
                 self.client.table("projects").update(row_data).eq("id", project_id).execute()
+
+                # Trigger n8n Project Assignment Email Workflow
+                def _dispatch_send_lead():
+                    try:
+                        from services.n8n_service import n8n_service
+                        n8n_service.trigger_n8n_project_assignment(
+                            project_name=project.name,
+                            project_description=project.description or f"Sprint Execution & Deliverables for {project.name}",
+                            assignment_id=f"assign_{project_id}",
+                            assigned_by="Project Lead"
+                        )
+                    except Exception as notify_err:
+                        print(f"[SupabaseStorage] n8n project assignment error on send_to_lead: {notify_err}")
+
+                import threading
+                threading.Thread(target=_dispatch_send_lead, daemon=True).start()
+
             except Exception as e:
                 print(f"[SupabaseStorage] send_to_lead error: {e}")
 
@@ -404,9 +438,26 @@ class SupabaseStorage:
                 duration_minutes=60,
                 type="Sprint Planning",
                 attendees=["Arjun Reddy", "Ishita Rao"],
-                location_or_link="Google Meet (meet.google.com/kuiper-sprint)",
+                location_or_link="",
                 agenda=f"Project Lead accepted {project.name}. Review AI work allocations, resource bandwidth, and kick off Sprint execution."
             ))
+
+            # Trigger n8n Project Assignment Email Workflow
+            def _dispatch_lead_accept():
+                try:
+                    from services.n8n_service import n8n_service
+                    n8n_service.trigger_n8n_project_assignment(
+                        project_name=project.name,
+                        project_description=project.description or f"Sprint Execution & Deliverables for {project.name}",
+                        assignment_id=f"assign_{project_id}",
+                        assigned_by="Project Lead"
+                    )
+                except Exception as notify_err:
+                    print(f"[SupabaseStorage] n8n project assignment error on lead_action: {notify_err}")
+
+            import threading
+            threading.Thread(target=_dispatch_lead_accept, daemon=True).start()
+
         else: # reject
             updated_dict["lead_status"] = "Rejected"
             updated_dict["status"] = "Rejected by Lead"
